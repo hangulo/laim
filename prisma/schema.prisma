@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String                @id @default(cuid())
+  email     String                @unique
+  name      String?
+  image     String?
+  createdAt DateTime              @default(now())
+  accounts  LinkedGoogleAccount[]
+}
+
+model LinkedGoogleAccount {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email        String
+  name         String?
+  image        String?
+  accessToken  String
+  refreshToken String?
+  expiresAt    Int?
+  scope        String?
+  tokenType    String?
+  idToken      String?
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, email])
+}
