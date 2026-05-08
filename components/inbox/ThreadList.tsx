@@ -31,10 +31,10 @@ type Tab = "primary" | "promotions" | "updates" | "social" | "forums";
 
 const INBOX_TABS: { id: Tab; label: string; labelIds: string[] }[] = [
   { id: "primary",    label: "Primary",    labelIds: ["INBOX", "CATEGORY_PERSONAL"] },
-  { id: "promotions", label: "Promotions", labelIds: ["INBOX", "CATEGORY_PROMOTIONS"] },
-  { id: "updates",    label: "Updates",    labelIds: ["INBOX", "CATEGORY_UPDATES"] },
-  { id: "social",     label: "Social",     labelIds: ["INBOX", "CATEGORY_SOCIAL"] },
-  { id: "forums",     label: "Forums",     labelIds: ["INBOX", "CATEGORY_FORUMS"] },
+  { id: "promotions", label: "Promotions", labelIds: ["CATEGORY_PROMOTIONS"] },
+  { id: "updates",    label: "Updates",    labelIds: ["CATEGORY_UPDATES"] },
+  { id: "social",     label: "Social",     labelIds: ["CATEGORY_SOCIAL"] },
+  { id: "forums",     label: "Forums",     labelIds: ["CATEGORY_FORUMS"] },
 ];
 
 function parseSender(raw: string): { name: string; email: string } {
