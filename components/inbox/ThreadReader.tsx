@@ -55,15 +55,40 @@ function fmtDate(raw: string): string {
 
 function HtmlEmailBody({ html }: { html: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [height, setHeight] = useState(200);
+  const [height, setHeight] = useState(600);
 
   const srcDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a1a; word-wrap: break-word; }
-    img { max-width: 100%; height: auto; }
+    html, body { margin: 0; padding: 0; overflow: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a1a; word-wrap: break-word; }
+    img { max-width: 100%; height: auto; display: block; }
     a { color: #2563eb; }
-    table { max-width: 100%; }
+    table { max-width: 100% !important; }
     pre, code { white-space: pre-wrap; word-break: break-all; }
   </style></head><body>${html}</body></html>`;
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    let observer: ResizeObserver | null = null;
+
+    function onLoad() {
+      const doc = iframe!.contentDocument;
+      if (!doc) return;
+      function sync() {
+        const h = doc!.documentElement.scrollHeight;
+        if (h > 10) setHeight(h + 16);
+      }
+      sync();
+      observer = new ResizeObserver(sync);
+      observer.observe(doc.documentElement);
+    }
+
+    iframe.addEventListener("load", onLoad);
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+      observer?.disconnect();
+    };
+  }, [html]);
 
   return (
     <iframe
@@ -72,10 +97,6 @@ function HtmlEmailBody({ html }: { html: string }) {
       sandbox="allow-popups allow-popups-to-escape-sandbox"
       className="w-full border-0"
       style={{ height }}
-      onLoad={() => {
-        const doc = iframeRef.current?.contentDocument;
-        if (doc) setHeight(doc.documentElement.scrollHeight + 16);
-      }}
     />
   );
 }
