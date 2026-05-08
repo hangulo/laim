@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { useActions } from "@/components/shortcuts/ActionContext";
 
@@ -17,7 +17,7 @@ interface Thread {
 
 type Tab = "primary" | "promotions" | "updates";
 
-const TABS: { id: Tab; label: string; labelIds: string[] }[] = [
+const INBOX_TABS: { id: Tab; label: string; labelIds: string[] }[] = [
   { id: "primary",    label: "Primary",    labelIds: ["INBOX", "CATEGORY_PERSONAL"] },
   { id: "promotions", label: "Promotions", labelIds: ["INBOX", "CATEGORY_PROMOTIONS"] },
   { id: "updates",    label: "Updates",    labelIds: ["INBOX", "CATEGORY_UPDATES"] },
@@ -42,21 +42,29 @@ export function ThreadList() {
   const cursor = useApp((s) => s.cursor);
   const setCursor = useApp((s) => s.setCursor);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { registerThreadList } = useActions();
+
+  const activeLabel = searchParams.get("label") ?? "INBOX";
+  const isInbox = activeLabel === "INBOX";
+
   const [activeTab, setActiveTab] = useState<Tab>("primary");
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async (tab: Tab) => {
+  const load = useCallback(async (label: string, tab: Tab, unread: boolean) => {
     if (!accountId) return;
     setLoading(true);
     try {
-      const labelIds = TABS.find((t) => t.id === tab)!.labelIds;
-      const params = new URLSearchParams({
-        accountId,
-        max: "50",
-        label: labelIds.join(","),
-      });
+      let labelIds: string[];
+      if (label === "INBOX") {
+        labelIds = INBOX_TABS.find((t) => t.id === tab)!.labelIds;
+      } else {
+        labelIds = [label];
+      }
+      const params = new URLSearchParams({ accountId, max: "50", label: labelIds.join(",") });
+      if (unread) params.set("q", "is:unread");
       const res = await fetch(`/api/gmail/threads?${params}`);
       const data = await res.json();
       setThreads(data.threads ?? []);
@@ -67,11 +75,11 @@ export function ThreadList() {
   }, [accountId, setCursor]);
 
   useEffect(() => {
-    void load(activeTab);
-    const handler = () => void load(activeTab);
+    void load(activeLabel, activeTab, unreadOnly);
+    const handler = () => void load(activeLabel, activeTab, unreadOnly);
     window.addEventListener("laim:refresh-threads", handler);
     return () => window.removeEventListener("laim:refresh-threads", handler);
-  }, [load, activeTab]);
+  }, [load, activeLabel, activeTab, unreadOnly]);
 
   useEffect(() => {
     if (!accountId) return;
@@ -90,48 +98,77 @@ export function ThreadList() {
     return <div className="p-6 text-sm text-neutral-500">No active account.</div>;
   }
 
+  const displayed = threads;
+
   return (
     <div className="divide-y divide-neutral-100">
-      {/* Tab bar */}
-      <div className="flex border-b border-neutral-200 bg-white">
-        {TABS.map((tab) => (
+      {/* Tab bar — only for Inbox */}
+      {isInbox && (
+        <div className="flex items-center border-b border-neutral-200 bg-white">
+          {INBOX_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => switchTab(tab.id)}
+              className={`relative flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id ? "text-blue-600" : "text-neutral-500 hover:text-neutral-800"
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-blue-600" />
+              )}
+            </button>
+          ))}
+          {/* Unread toggle */}
+          <div className="ml-auto flex items-center gap-2 pr-3">
+            <button
+              onClick={() => setUnreadOnly((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                unreadOnly
+                  ? "border-blue-300 bg-blue-50 text-blue-700"
+                  : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${unreadOnly ? "bg-blue-500" : "bg-neutral-300"}`} />
+              Unread
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Non-inbox header with unread toggle */}
+      {!isInbox && (
+        <div className="flex items-center justify-end border-b border-neutral-200 bg-white px-4 py-2">
           <button
-            key={tab.id}
-            onClick={() => switchTab(tab.id)}
-            className={`relative flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === tab.id
-                ? "text-blue-600"
-                : "text-neutral-500 hover:text-neutral-800"
+            onClick={() => setUnreadOnly((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              unreadOnly
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
             }`}
           >
-            {tab.id === "primary" && (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            )}
-            {tab.id === "promotions" && (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-            )}
-            {tab.id === "updates" && (
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
-            {tab.label}
-            {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-blue-600" />
-            )}
+            <span className={`h-1.5 w-1.5 rounded-full ${unreadOnly ? "bg-blue-500" : "bg-neutral-300"}`} />
+            Unread only
           </button>
-        ))}
-        <div className="ml-auto flex items-center pr-4 text-xs text-neutral-400">
-          {loading ? "syncing…" : `${threads.length} threads`}
         </div>
-      </div>
+      )}
+
+      {/* Loading skeleton */}
+      {loading && displayed.length === 0 && (
+        <div className="space-y-px">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+              <div className="h-2 w-2 rounded-full bg-neutral-100" />
+              <div className="h-3 w-36 animate-pulse rounded bg-neutral-100" />
+              <div className="h-3 flex-1 animate-pulse rounded bg-neutral-100" />
+              <div className="h-3 w-10 animate-pulse rounded bg-neutral-100" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Thread rows */}
-      {threads.map((t, i) => (
+      {displayed.map((t, i) => (
         <button
           key={t.id}
           onClick={() => {
@@ -156,19 +193,9 @@ export function ThreadList() {
         </button>
       ))}
 
-      {threads.length === 0 && !loading && (
-        <div className="p-10 text-center text-sm text-neutral-400">No messages here.</div>
-      )}
-      {loading && threads.length === 0 && (
-        <div className="space-y-px">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-              <div className="h-2 w-2 rounded-full bg-neutral-100" />
-              <div className="h-3 w-36 animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 flex-1 animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 w-10 animate-pulse rounded bg-neutral-100" />
-            </div>
-          ))}
+      {displayed.length === 0 && !loading && (
+        <div className="p-10 text-center text-sm text-neutral-400">
+          {unreadOnly ? "No unread messages here." : "Nothing here."}
         </div>
       )}
     </div>
