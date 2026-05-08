@@ -251,7 +251,7 @@ export function ThreadReader({ threadId, accountId }: { threadId: string; accoun
       </div>
 
       {/* Sidebar */}
-      <aside className="w-60 shrink-0 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+      <aside className="w-64 shrink-0 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm max-h-[calc(100vh-80px)] overflow-y-auto sticky top-4">
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
           From this sender
         </h2>
