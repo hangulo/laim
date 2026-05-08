@@ -60,7 +60,9 @@ export function ThreadList() {
 
   useEffect(() => {
     if (!accountId) return;
-    registerThreadList(threads.map((t) => ({ id: t.id, accountId })));
+    const list = threads.map((t) => ({ id: t.id, accountId }));
+    registerThreadList(list);
+    useApp.getState().setThreadList(list);
   }, [threads, accountId, registerThreadList]);
 
   if (!accountId) {
