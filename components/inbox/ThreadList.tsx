@@ -284,11 +284,31 @@ export function ThreadList() {
   if (!accountId) return <div className="p-6 text-sm text-neutral-500">No active account.</div>;
 
   const groups = grouped ? groupThreads(threads) : [];
+  const unreadCount = threads.filter((t) => t.unread).length;
 
   const Toggles = () => (
     <div className="flex items-center gap-2">
       <Toggle active={grouped} onClick={() => setGrouped((v) => !v)} label="Grouped" />
-      <Toggle active={unreadOnly} onClick={() => setUnreadOnly((v) => !v)} label="Unread only" />
+      <button
+        onClick={() => setUnreadOnly((v) => !v)}
+        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+          unreadOnly
+            ? "border-blue-300 bg-blue-50 text-blue-700"
+            : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+        }`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${unreadOnly ? "bg-blue-500" : "bg-neutral-300"}`} />
+        Unread only
+        <span className={`ml-0.5 tabular-nums ${
+          unreadCount === 0
+            ? "text-neutral-300"
+            : unreadOnly
+              ? "text-blue-500"
+              : "text-neutral-400"
+        }`}>
+          {unreadCount}
+        </span>
+      </button>
     </div>
   );
 
