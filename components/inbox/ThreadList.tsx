@@ -117,6 +117,81 @@ function groupThreads(threads: Thread[]): ThreadGroup[] {
   );
 }
 
+interface CtxMenu { x: number; y: number; thread: Thread }
+
+async function apiAction(threadId: string, accountId: string, action: string, extra?: Record<string, unknown>) {
+  await fetch(`/api/gmail/threads/${threadId}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ accountId, action, ...extra }),
+  });
+  window.dispatchEvent(new CustomEvent("laim:refresh-threads"));
+}
+
+function ContextMenu({ menu, accountId, onClose }: { menu: CtxMenu; accountId: string; onClose: () => void }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent | KeyboardEvent) {
+      if (e instanceof KeyboardEvent) { if (e.key === "Escape") onClose(); return; }
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", handler);
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", handler); };
+  }, [onClose]);
+
+  // Flip menu if it would go off the bottom of viewport
+  const top = Math.min(menu.y, window.innerHeight - 180);
+  const left = Math.min(menu.x, window.innerWidth - 180);
+
+  const items = [
+    {
+      label: menu.thread.unread ? "Mark as read" : "Mark as unread",
+      icon: "●",
+      action: async () => {
+        await apiAction(menu.thread.id, accountId, "markRead", { read: menu.thread.unread });
+        onClose();
+      },
+    },
+    {
+      label: menu.thread.starred ? "Unstar" : "Star",
+      icon: "★",
+      action: async () => {
+        await apiAction(menu.thread.id, accountId, "star", { starred: !menu.thread.starred });
+        onClose();
+      },
+    },
+    {
+      label: "Archive",
+      icon: "↓",
+      action: async () => {
+        await apiAction(menu.thread.id, accountId, "archive");
+        onClose();
+      },
+    },
+  ];
+
+  return (
+    <div
+      ref={ref}
+      style={{ position: "fixed", top, left, zIndex: 9999 }}
+      className="min-w-[160px] overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+    >
+      {items.map((item) => (
+        <button
+          key={item.label}
+          onClick={item.action}
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+        >
+          <span className="w-4 text-center text-xs text-neutral-400">{item.icon}</span>
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SpamBadge({ score, hasUnsubscribe }: { score: number | null; hasUnsubscribe: boolean }) {
   const chips: React.ReactNode[] = [];
   if (score !== null) {
@@ -260,6 +335,7 @@ export function ThreadList() {
   const [grouped, setGrouped] = useState(false);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(false);
+  const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
 
   const load = useCallback(async (label: string, tab: Tab, unread: boolean) => {
     if (!accountId) return;
@@ -269,7 +345,9 @@ export function ThreadList() {
         ? INBOX_TABS.find((t) => t.id === tab)!.labelIds
         : [label];
       const params = new URLSearchParams({ accountId, max: "50", label: labelIds.join(",") });
-      if (unread) params.set("q", "is:unread");
+      // Always exclude spam from category views; combine with unread filter if needed
+      const q = [label !== "SPAM" ? "-in:spam" : "", unread ? "is:unread" : ""].filter(Boolean).join(" ");
+      if (q) params.set("q", q);
       const res = await fetch(`/api/gmail/threads?${params}`);
       const data = await res.json();
       setThreads(data.threads ?? []);
@@ -404,11 +482,16 @@ export function ThreadList() {
       )}
 
       {/* Flat view */}
+      {ctxMenu && accountId && (
+        <ContextMenu menu={ctxMenu} accountId={accountId} onClose={() => setCtxMenu(null)} />
+      )}
+
       {!grouped && threads.map((t, i) => (
         <button
           key={t.id}
           onClick={() => openThread(t.id, i)}
           onMouseEnter={() => setCursor(i)}
+          onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, thread: t }); }}
           className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
             i === cursor ? "bg-blue-50" : "hover:bg-neutral-50"
           }`}

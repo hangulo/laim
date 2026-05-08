@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useActions } from "@/components/shortcuts/ActionContext";
+import { useApp } from "@/lib/store";
 import { SenderHistory } from "./SenderHistory";
 
 interface Message {
@@ -178,7 +179,8 @@ function MessageCard({ m, defaultOpen }: { m: Message; defaultOpen: boolean }) {
 export function ThreadReader({ threadId, accountId }: { threadId: string; accountId: string }) {
   const [data, setData] = useState<ThreadFull | null>(null);
   const [loading, setLoading] = useState(true);
-  const { registerOpenThread } = useActions();
+  const [isRead, setIsRead] = useState(true);
+  const { registerOpenThread, dispatch } = useActions();
 
   useEffect(() => {
     setLoading(true);
@@ -186,6 +188,7 @@ export function ThreadReader({ threadId, accountId }: { threadId: string; accoun
       .then((r) => r.json())
       .then((d) => {
         setData(d.thread);
+        setIsRead(true);
         // Mark as read silently — fire and forget, same as Gmail
         fetch(`/api/gmail/threads/${threadId}`, {
           method: "POST",
@@ -269,19 +272,51 @@ export function ThreadReader({ threadId, accountId }: { threadId: string; accoun
           ))}
         </div>
 
-        <div className="mt-4 flex items-center gap-3 text-xs text-neutral-400">
-          {[
-            { key: "r", label: "Reply" },
-            { key: "a", label: "Reply all" },
-            { key: "f", label: "Forward" },
-            { key: "e", label: "Archive" },
-            { key: "u", label: "Back" },
-          ].map(({ key, label }) => (
-            <span key={key} className="flex items-center gap-1">
-              <kbd className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] text-neutral-600">{key}</kbd>
-              <span>{label}</span>
-            </span>
-          ))}
+        <div className="mt-4 flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => dispatch("reply")}
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+            Reply <kbd className="ml-1 rounded bg-neutral-100 px-1 font-mono text-[10px] text-neutral-400">r</kbd>
+          </button>
+          <button
+            onClick={() => dispatch("replyAll")}
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            Reply all <kbd className="ml-1 rounded bg-neutral-100 px-1 font-mono text-[10px] text-neutral-400">a</kbd>
+          </button>
+          <button
+            onClick={() => dispatch("forward")}
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6" /></svg>
+            Forward <kbd className="ml-1 rounded bg-neutral-100 px-1 font-mono text-[10px] text-neutral-400">f</kbd>
+          </button>
+          <button
+            onClick={() => dispatch("archive")}
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2L19 8m-9 4v4m4-4v4" /></svg>
+            Archive <kbd className="ml-1 rounded bg-neutral-100 px-1 font-mono text-[10px] text-neutral-400">e</kbd>
+          </button>
+          <button
+            onClick={async () => {
+              const newRead = !isRead;
+              setIsRead(newRead);
+              await fetch(`/api/gmail/threads/${threadId}`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ accountId, action: "markRead", read: newRead }),
+              });
+              window.dispatchEvent(new CustomEvent("laim:refresh-threads"));
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            <span className={`h-2 w-2 rounded-full ${isRead ? "bg-neutral-300" : "bg-blue-500"}`} />
+            {isRead ? "Mark unread" : "Mark read"}
+            <kbd className="ml-1 rounded bg-neutral-100 px-1 font-mono text-[10px] text-neutral-400">U</kbd>
+          </button>
         </div>
       </div>
 
