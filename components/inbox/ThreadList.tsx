@@ -15,12 +15,14 @@ interface Thread {
   starred: boolean;
 }
 
-type Tab = "primary" | "promotions" | "updates";
+type Tab = "primary" | "promotions" | "updates" | "social" | "forums";
 
 const INBOX_TABS: { id: Tab; label: string; labelIds: string[] }[] = [
   { id: "primary",    label: "Primary",    labelIds: ["INBOX", "CATEGORY_PERSONAL"] },
   { id: "promotions", label: "Promotions", labelIds: ["INBOX", "CATEGORY_PROMOTIONS"] },
   { id: "updates",    label: "Updates",    labelIds: ["INBOX", "CATEGORY_UPDATES"] },
+  { id: "social",     label: "Social",     labelIds: ["INBOX", "CATEGORY_SOCIAL"] },
+  { id: "forums",     label: "Forums",     labelIds: ["INBOX", "CATEGORY_FORUMS"] },
 ];
 
 function fmtFrom(raw: string): string {
