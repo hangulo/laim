@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useActions } from "@/components/shortcuts/ActionContext";
 import { SenderHistory } from "./SenderHistory";
 
@@ -12,6 +12,7 @@ interface Message {
   date: string;
   subject: string;
   bodyText: string;
+  bodyHtml?: string;
 }
 
 interface ThreadFull {
@@ -52,6 +53,33 @@ function fmtDate(raw: string): string {
     " · " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function HtmlEmailBody({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(200);
+
+  const srcDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a1a; word-wrap: break-word; }
+    img { max-width: 100%; height: auto; }
+    a { color: #2563eb; }
+    table { max-width: 100%; }
+    pre, code { white-space: pre-wrap; word-break: break-all; }
+  </style></head><body>${html}</body></html>`;
+
+  return (
+    <iframe
+      ref={iframeRef}
+      srcDoc={srcDoc}
+      sandbox="allow-popups allow-popups-to-escape-sandbox"
+      className="w-full border-0"
+      style={{ height }}
+      onLoad={() => {
+        const doc = iframeRef.current?.contentDocument;
+        if (doc) setHeight(doc.documentElement.scrollHeight + 16);
+      }}
+    />
+  );
+}
+
 function MessageCard({ m, defaultOpen }: { m: Message; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const sender = parseSender(m.from);
@@ -81,16 +109,20 @@ function MessageCard({ m, defaultOpen }: { m: Message; defaultOpen: boolean }) {
       </button>
 
       {open && (
-        <div className="border-t border-neutral-100 px-4 pb-4 pt-3">
+        <div className="border-t border-neutral-100 px-4 pb-1 pt-3">
           {m.to && (
             <p className="mb-3 text-xs text-neutral-400">
               <span className="font-medium text-neutral-500">To: </span>{m.to}
               {m.cc && <><span className="ml-2 font-medium text-neutral-500">Cc: </span>{m.cc}</>}
             </p>
           )}
-          <div className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800">
-            {m.bodyText}
-          </div>
+          {m.bodyHtml ? (
+            <HtmlEmailBody html={m.bodyHtml} />
+          ) : (
+            <div className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-neutral-800 pb-3">
+              {m.bodyText}
+            </div>
+          )}
         </div>
       )}
     </article>
