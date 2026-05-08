@@ -13,6 +13,8 @@ interface Thread {
   date: string;
   unread: boolean;
   starred: boolean;
+  participants: string[];
+  messageCount: number;
 }
 
 type Tab = "primary" | "promotions" | "updates" | "social" | "forums";
@@ -25,9 +27,9 @@ const INBOX_TABS: { id: Tab; label: string; labelIds: string[] }[] = [
   { id: "forums",     label: "Forums",     labelIds: ["INBOX", "CATEGORY_FORUMS"] },
 ];
 
-function fmtFrom(raw: string): string {
-  const m = raw.match(/^"?([^"<]*?)"?\s*<.*>$/);
-  return (m ? m[1] : raw).trim() || raw;
+function fmtParticipants(participants: string[], messageCount: number): string {
+  const str = participants.join(", ");
+  return messageCount > 1 ? `${str} ${messageCount}` : str;
 }
 
 function fmtDate(raw: string): string {
@@ -183,7 +185,9 @@ export function ThreadList() {
           }`}
         >
           <span className={`h-2 w-2 shrink-0 rounded-full ${t.unread ? "bg-blue-500" : "bg-transparent"}`} />
-          <span className="w-44 shrink-0 truncate font-medium text-neutral-900">{fmtFrom(t.from)}</span>
+          <span className="w-44 shrink-0 truncate font-medium text-neutral-900">
+            {fmtParticipants(t.participants?.length ? t.participants : [t.from], t.messageCount ?? 1)}
+          </span>
           <span className="min-w-0 flex-1 truncate">
             <span className={t.unread ? "font-semibold text-neutral-900" : "text-neutral-700"}>
               {t.subject || "(no subject)"}

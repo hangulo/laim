@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       query,
       labelIds,
       maxResults: max,
+      myEmail: account.email,
     });
     return NextResponse.json({
       accountId: account.id,
