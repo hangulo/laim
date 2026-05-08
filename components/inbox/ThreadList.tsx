@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { useActions } from "@/components/shortcuts/ActionContext";
@@ -15,6 +15,8 @@ interface Thread {
   starred: boolean;
   participants: string[];
   messageCount: number;
+  spamScore: number | null;
+  hasUnsubscribe: boolean;
 }
 
 interface ThreadGroup {
@@ -113,6 +115,27 @@ function groupThreads(threads: Thread[]): ThreadGroup[] {
   return Array.from(map.values()).sort(
     (a, b) => new Date(b.mostRecentDate).getTime() - new Date(a.mostRecentDate).getTime()
   );
+}
+
+function SpamBadge({ score, hasUnsubscribe }: { score: number | null; hasUnsubscribe: boolean }) {
+  const chips: React.ReactNode[] = [];
+  if (score !== null) {
+    const color = score >= 4 ? "bg-red-100 text-red-600" : score >= 2 ? "bg-amber-100 text-amber-600" : score >= 0 ? "bg-yellow-50 text-yellow-600" : "bg-neutral-100 text-neutral-400";
+    chips.push(
+      <span key="score" className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${color}`} title="Spam score">
+        {score > 0 ? "+" : ""}{score.toFixed(1)}
+      </span>
+    );
+  }
+  if (hasUnsubscribe) {
+    chips.push(
+      <span key="unsub" className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] text-neutral-400" title="Has unsubscribe link">
+        bulk
+      </span>
+    );
+  }
+  if (chips.length === 0) return null;
+  return <span className="flex shrink-0 items-center gap-1">{chips}</span>;
 }
 
 function Toggle({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
@@ -400,6 +423,7 @@ export function ThreadList() {
             </span>
             <span className="ml-2 text-neutral-400">{t.snippet}</span>
           </span>
+          <SpamBadge score={t.spamScore ?? null} hasUnsubscribe={t.hasUnsubscribe ?? false} />
           {t.starred && <span className="shrink-0 text-amber-400">★</span>}
           <span className="w-16 shrink-0 text-right font-mono text-xs text-neutral-400">{fmtDate(t.date)}</span>
         </button>

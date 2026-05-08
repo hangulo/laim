@@ -16,6 +16,8 @@ export interface ThreadSummary {
   hasAttachment: boolean;
   participants: string[];
   messageCount: number;
+  spamScore: number | null;
+  hasUnsubscribe: boolean;
 }
 
 export interface ThreadFull {
@@ -36,6 +38,8 @@ export interface ThreadMessage {
   bodyText: string;
   bodyHtml?: string;
   snippet: string;
+  spamScore: number | null;
+  unsubscribeUrl: string | null;
 }
 
 async function gmailFor(accountId: string) {
@@ -69,6 +73,24 @@ function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): { text: 
   return { text, html };
 }
 
+function parseSpamScore(headers: gmail_v1.Schema$MessagePartHeader[] | undefined): number | null {
+  const status = header(headers, "X-Spam-Status");
+  const score = header(headers, "X-Spam-Score");
+  if (score) { const n = parseFloat(score); if (!isNaN(n)) return n; }
+  if (status) { const m = status.match(/score=([-\d.]+)/i); if (m) return parseFloat(m[1]); }
+  return null;
+}
+
+function parseUnsubscribeUrl(headers: gmail_v1.Schema$MessagePartHeader[] | undefined): string | null {
+  const raw = header(headers, "List-Unsubscribe");
+  if (!raw) return null;
+  const https = raw.match(/<(https?:\/\/[^>]+)>/i);
+  if (https) return https[1];
+  const mailto = raw.match(/<(mailto:[^>]+)>/i);
+  if (mailto) return mailto[1];
+  return null;
+}
+
 function senderName(from: string, myEmail: string): string {
   const emailMatch = from.match(/<([^>]+)>/);
   const email = (emailMatch ? emailMatch[1] : from).trim().toLowerCase();
@@ -94,7 +116,7 @@ export async function listThreads(
   const threadIds = list.data.threads?.map((t) => t.id!).filter(Boolean) ?? [];
   const threads = await Promise.all(
     threadIds.map(async (id): Promise<ThreadSummary> => {
-      const t = await gmail.users.threads.get({ userId: "me", id, format: "metadata", metadataHeaders: ["Subject", "From", "To", "Date"] });
+      const t = await gmail.users.threads.get({ userId: "me", id, format: "metadata", metadataHeaders: ["Subject", "From", "To", "Date", "X-Spam-Status", "X-Spam-Score", "List-Unsubscribe"] });
       const messages = t.data.messages ?? [];
       const last = messages[messages.length - 1];
       const labels = new Set<string>();
@@ -131,6 +153,8 @@ export async function listThreads(
         hasAttachment,
         participants,
         messageCount: messages.length,
+        spamScore: parseSpamScore(last?.payload?.headers ?? undefined),
+        hasUnsubscribe: !!parseUnsubscribeUrl(messages[0]?.payload?.headers ?? undefined),
       };
     }),
   );
@@ -158,6 +182,8 @@ export async function getThread(accountId: string, threadId: string): Promise<Th
       bodyText: body.text,
       bodyHtml: body.html,
       snippet: m.snippet ?? "",
+      spamScore: parseSpamScore(headers),
+      unsubscribeUrl: parseUnsubscribeUrl(headers),
     };
   });
 

@@ -13,6 +13,8 @@ interface Message {
   subject: string;
   bodyText: string;
   bodyHtml?: string;
+  spamScore: number | null;
+  unsubscribeUrl: string | null;
 }
 
 interface ThreadFull {
@@ -124,7 +126,30 @@ function MessageCard({ m, defaultOpen }: { m: Message; defaultOpen: boolean }) {
             <p className="truncate text-xs text-neutral-400">{m.bodyText.slice(0, 120)}</p>
           )}
           {open && (
-            <p className="text-xs text-neutral-500">{sender.email}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs text-neutral-500">{sender.email}</p>
+              {m.spamScore !== null && (
+                <span className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${
+                  m.spamScore >= 4 ? "bg-red-100 text-red-600" :
+                  m.spamScore >= 2 ? "bg-amber-100 text-amber-600" :
+                  m.spamScore >= 0 ? "bg-yellow-50 text-yellow-600" :
+                  "bg-neutral-100 text-neutral-400"
+                }`} title="Spam score (higher = more suspicious)">
+                  spam {m.spamScore > 0 ? "+" : ""}{m.spamScore.toFixed(1)}
+                </span>
+              )}
+              {m.unsubscribeUrl && (
+                <a
+                  href={m.unsubscribeUrl}
+                  target={m.unsubscribeUrl.startsWith("mailto:") ? undefined : "_blank"}
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded px-1.5 py-0.5 text-[10px] text-neutral-400 underline hover:text-red-500 transition-colors"
+                >
+                  Unsubscribe
+                </a>
+              )}
+            </div>
           )}
         </div>
       </button>
