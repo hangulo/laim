@@ -22,10 +22,12 @@ export async function GET(req: NextRequest) {
     }
 
     const { account } = await requireAccount(accountId);
+    const labelIds = label ? label.split(",").map((l) => l.trim()) : ["INBOX"];
     const { threads, nextPageToken } = await listThreads(account.id, {
       query,
-      labelIds: label ? [label] : ["INBOX"],
+      labelIds,
       maxResults: max,
+      myEmail: account.email,
     });
     return NextResponse.json({
       accountId: account.id,

@@ -11,10 +11,16 @@ export interface AccountInfo {
   isPrimary: boolean;
 }
 
+export interface ThreadRef {
+  id: string;
+  accountId: string;
+}
+
 interface AppState {
   accounts: AccountInfo[];
   activeAccountId: string | null;
   cursor: number;
+  threadList: ThreadRef[];
   paletteOpen: boolean;
   composerOpen: boolean;
   composerInitial: ComposerInitial | null;
@@ -23,6 +29,7 @@ interface AppState {
   cycleAccount: (dir: 1 | -1) => void;
   setCursor: (n: number) => void;
   moveCursor: (delta: number, max: number) => void;
+  setThreadList: (list: ThreadRef[]) => void;
   openPalette: () => void;
   closePalette: () => void;
   openComposer: (initial?: ComposerInitial) => void;
@@ -45,6 +52,7 @@ export const useApp = create<AppState>()(
       accounts: [],
       activeAccountId: null,
       cursor: 0,
+      threadList: [],
       paletteOpen: false,
       composerOpen: false,
       composerInitial: null,
@@ -67,6 +75,7 @@ export const useApp = create<AppState>()(
       setCursor: (n) => set({ cursor: n }),
       moveCursor: (delta, max) =>
         set((s) => ({ cursor: Math.max(0, Math.min(max - 1, s.cursor + delta)) })),
+      setThreadList: (list) => set({ threadList: list }),
       openPalette: () => set({ paletteOpen: true }),
       closePalette: () => set({ paletteOpen: false }),
       openComposer: (initial) => set({ composerOpen: true, composerInitial: initial ?? null }),

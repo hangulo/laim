@@ -14,6 +14,10 @@ export interface ThreadSummary {
   starred: boolean;
   labelIds: string[];
   hasAttachment: boolean;
+  participants: string[];
+  messageCount: number;
+  spamScore: number | null;
+  hasUnsubscribe: boolean;
 }
 
 export interface ThreadFull {
@@ -34,6 +38,8 @@ export interface ThreadMessage {
   bodyText: string;
   bodyHtml?: string;
   snippet: string;
+  spamScore: number | null;
+  unsubscribeUrl: string | null;
 }
 
 async function gmailFor(accountId: string) {
@@ -67,9 +73,36 @@ function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): { text: 
   return { text, html };
 }
 
+function parseSpamScore(headers: gmail_v1.Schema$MessagePartHeader[] | undefined): number | null {
+  const status = header(headers, "X-Spam-Status");
+  const score = header(headers, "X-Spam-Score");
+  if (score) { const n = parseFloat(score); if (!isNaN(n)) return n; }
+  if (status) { const m = status.match(/score=([-\d.]+)/i); if (m) return parseFloat(m[1]); }
+  return null;
+}
+
+function parseUnsubscribeUrl(headers: gmail_v1.Schema$MessagePartHeader[] | undefined): string | null {
+  const raw = header(headers, "List-Unsubscribe");
+  if (!raw) return null;
+  const https = raw.match(/<(https?:\/\/[^>]+)>/i);
+  if (https) return https[1];
+  const mailto = raw.match(/<(mailto:[^>]+)>/i);
+  if (mailto) return mailto[1];
+  return null;
+}
+
+function senderName(from: string, myEmail: string): string {
+  const emailMatch = from.match(/<([^>]+)>/);
+  const email = (emailMatch ? emailMatch[1] : from).trim().toLowerCase();
+  if (email === myEmail.toLowerCase()) return "me";
+  const nameMatch = from.match(/^"?([^"<]+)"?\s*</);
+  if (nameMatch) return nameMatch[1].trim().split(/\s+/)[0];
+  return email.split("@")[0];
+}
+
 export async function listThreads(
   accountId: string,
-  opts: { query?: string; labelIds?: string[]; maxResults?: number; pageToken?: string } = {},
+  opts: { query?: string; labelIds?: string[]; maxResults?: number; pageToken?: string; myEmail?: string } = {},
 ): Promise<{ threads: ThreadSummary[]; nextPageToken?: string }> {
   const gmail = await gmailFor(accountId);
   const list = await gmail.users.threads.list({
@@ -83,17 +116,33 @@ export async function listThreads(
   const threadIds = list.data.threads?.map((t) => t.id!).filter(Boolean) ?? [];
   const threads = await Promise.all(
     threadIds.map(async (id): Promise<ThreadSummary> => {
-      const t = await gmail.users.threads.get({ userId: "me", id, format: "metadata", metadataHeaders: ["Subject", "From", "To", "Date"] });
-      const last = t.data.messages?.[t.data.messages.length - 1];
+      const t = await gmail.users.threads.get({ userId: "me", id, format: "metadata", metadataHeaders: ["Subject", "From", "To", "Date", "X-Spam-Status", "X-Spam-Score", "List-Unsubscribe"] });
+      const messages = t.data.messages ?? [];
+      const last = messages[messages.length - 1];
       const labels = new Set<string>();
-      t.data.messages?.forEach((m) => m.labelIds?.forEach((l) => labels.add(l)));
-      const hasAttachment = !!t.data.messages?.some((m) =>
+      messages.forEach((m) => m.labelIds?.forEach((l) => labels.add(l)));
+      const hasAttachment = !!messages.some((m) =>
         (m.payload?.parts ?? []).some((p) => p.filename && p.filename.length > 0),
       );
+
+      // Collect unique participants in order, replacing own address with "me"
+      const myEmail = opts.myEmail ?? "";
+      const seen = new Set<string>();
+      const participants: string[] = [];
+      for (const m of messages) {
+        const from = header(m.payload?.headers ?? undefined, "From");
+        const emailMatch = from.match(/<([^>]+)>/);
+        const email = (emailMatch ? emailMatch[1] : from).trim().toLowerCase();
+        if (!seen.has(email)) {
+          seen.add(email);
+          participants.push(senderName(from, myEmail));
+        }
+      }
+
       return {
         id: id,
         historyId: t.data.historyId ?? undefined,
-        snippet: t.data.messages?.map((m) => m.snippet).filter(Boolean).join(" · ") ?? "",
+        snippet: messages.map((m) => m.snippet).filter(Boolean).join(" · ") ?? "",
         subject: header(last?.payload?.headers ?? undefined, "Subject"),
         from: header(last?.payload?.headers ?? undefined, "From"),
         to: header(last?.payload?.headers ?? undefined, "To"),
@@ -102,6 +151,10 @@ export async function listThreads(
         starred: labels.has("STARRED"),
         labelIds: Array.from(labels),
         hasAttachment,
+        participants,
+        messageCount: messages.length,
+        spamScore: parseSpamScore(last?.payload?.headers ?? undefined),
+        hasUnsubscribe: !!parseUnsubscribeUrl(messages[0]?.payload?.headers ?? undefined),
       };
     }),
   );
@@ -129,6 +182,8 @@ export async function getThread(accountId: string, threadId: string): Promise<Th
       bodyText: body.text,
       bodyHtml: body.html,
       snippet: m.snippet ?? "",
+      spamScore: parseSpamScore(headers),
+      unsubscribeUrl: parseUnsubscribeUrl(headers),
     };
   });
 

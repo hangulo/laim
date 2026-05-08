@@ -53,7 +53,18 @@ export const actions: Record<ActionId, Action> = {
     id: "next",
     label: "Next",
     hint: "j",
-    run: ({ threadList }) => {
+    run: ({ router, threadList, openThread }) => {
+      if (openThread) {
+        const list = useApp.getState().threadList;
+        const idx = list.findIndex((t) => t.id === openThread.id);
+        const next = idx === -1 ? 0 : idx + 1;
+        if (next < list.length) {
+          useApp.getState().setCursor(next);
+          const t = list[next];
+          router.push(`/thread/${t.id}?accountId=${t.accountId}`);
+        }
+        return;
+      }
       useApp.getState().moveCursor(1, Math.max(threadList.length, 1));
     },
   },
@@ -61,7 +72,18 @@ export const actions: Record<ActionId, Action> = {
     id: "prev",
     label: "Previous",
     hint: "k",
-    run: ({ threadList }) => {
+    run: ({ router, threadList, openThread }) => {
+      if (openThread) {
+        const list = useApp.getState().threadList;
+        const idx = list.findIndex((t) => t.id === openThread.id);
+        if (idx > 0) {
+          const prev = idx - 1;
+          useApp.getState().setCursor(prev);
+          const t = list[prev];
+          router.push(`/thread/${t.id}?accountId=${t.accountId}`);
+        }
+        return;
+      }
       useApp.getState().moveCursor(-1, Math.max(threadList.length, 1));
     },
   },
