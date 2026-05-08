@@ -184,7 +184,17 @@ export function ThreadReader({ threadId, accountId }: { threadId: string; accoun
     setLoading(true);
     fetch(`/api/gmail/threads/${threadId}?accountId=${accountId}`)
       .then((r) => r.json())
-      .then((d) => setData(d.thread))
+      .then((d) => {
+        setData(d.thread);
+        // Mark as read silently — fire and forget, same as Gmail
+        fetch(`/api/gmail/threads/${threadId}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ accountId, action: "markRead", read: true }),
+        }).then(() => {
+          window.dispatchEvent(new CustomEvent("laim:refresh-threads"));
+        });
+      })
       .finally(() => setLoading(false));
   }, [threadId, accountId]);
 
