@@ -22,13 +22,6 @@ const SYSTEM_SECTIONS = [
   { id: "DRAFT",     label: "Drafts",    icon: "draft" },
 ];
 
-const CATEGORY_SECTIONS = [
-  { id: "CATEGORY_PROMOTIONS", label: "Promotions", icon: "tag" },
-  { id: "CATEGORY_SOCIAL",     label: "Social",     icon: "social" },
-  { id: "CATEGORY_UPDATES",    label: "Updates",    icon: "updates" },
-  { id: "CATEGORY_FORUMS",     label: "Forums",     icon: "forums" },
-  { id: "CATEGORY_PURCHASES",  label: "Purchases",  icon: "purchases" },
-];
 
 function NavIcon({ type }: { type: string }) {
   const cls = "h-4 w-4 shrink-0";
@@ -58,8 +51,6 @@ export function InboxNav() {
   const searchParams = useSearchParams();
   const activeLabel = searchParams.get("label") ?? "INBOX";
   const [labels, setLabels] = useState<GmailLabel[]>([]);
-  const [categoriesOpen, setCategoriesOpen] = useState(true);
-  const [labelsOpen, setLabelsOpen] = useState(true);
 
   useEffect(() => {
     if (!accountId) return;
@@ -92,10 +83,6 @@ export function InboxNav() {
     );
   }
 
-  const userLabels = labels.filter(
-    (l) => l.type === "user" && !l.name.startsWith("CATEGORY_"),
-  );
-
   return (
     <nav className="flex w-56 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-neutral-200 bg-white px-2 py-3">
       {SYSTEM_SECTIONS.map((s) => (
@@ -108,47 +95,6 @@ export function InboxNav() {
         />
       ))}
 
-      {/* Categories */}
-      <div className="mt-2">
-        <button
-          onClick={() => setCategoriesOpen((o) => !o)}
-          className="flex w-full items-center gap-1 px-3 py-1 text-xs font-medium text-neutral-500 hover:text-neutral-700"
-        >
-          <svg className={`h-3 w-3 transition-transform ${categoriesOpen ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5l8 7-8 7V5z" /></svg>
-          Categories
-        </button>
-        {categoriesOpen && CATEGORY_SECTIONS.map((s) => (
-          <NavItem
-            key={s.id}
-            id={s.id}
-            label={s.label}
-            icon={s.icon}
-            unread={byId[s.id]?.messagesUnread}
-          />
-        ))}
-      </div>
-
-      {/* User labels */}
-      {userLabels.length > 0 && (
-        <div className="mt-2">
-          <button
-            onClick={() => setLabelsOpen((o) => !o)}
-            className="flex w-full items-center gap-1 px-3 py-1 text-xs font-medium text-neutral-500 hover:text-neutral-700"
-          >
-            <svg className={`h-3 w-3 transition-transform ${labelsOpen ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5l8 7-8 7V5z" /></svg>
-            Labels
-          </button>
-          {labelsOpen && userLabels.map((l) => (
-            <NavItem
-              key={l.id}
-              id={l.id}
-              label={l.name}
-              icon="label"
-              unread={l.messagesUnread}
-            />
-          ))}
-        </div>
-      )}
     </nav>
   );
 }
