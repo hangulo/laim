@@ -11,6 +11,10 @@ const DEFAULT_MAP: Record<number, ActionId> = {
   4: "next",
 };
 
+// Throttle horizontal scroll so one flick = one action
+let lastWheelTime = 0;
+const WHEEL_THROTTLE_MS = 300;
+
 export function MouseHandler() {
   const { dispatch } = useActions();
 
@@ -33,9 +37,28 @@ export function MouseHandler() {
       }
     }
 
-    // auxclick fires on middle/extra buttons in some browsers; mouseup is more reliable
+    function onWheel(e: WheelEvent) {
+      // Only handle horizontal scroll with meaningful delta; ignore vertical
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      if (Math.abs(e.deltaX) < 10) return;
+
+      const state = useApp.getState();
+      if (state.composerOpen || state.paletteOpen) return;
+
+      const now = Date.now();
+      if (now - lastWheelTime < WHEEL_THROTTLE_MS) return;
+      lastWheelTime = now;
+
+      e.preventDefault();
+      dispatch(e.deltaX > 0 ? "next" : "prev");
+    }
+
     window.addEventListener("mouseup", onMouseUp);
-    return () => window.removeEventListener("mouseup", onMouseUp);
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("wheel", onWheel);
+    };
   }, [dispatch]);
 
   return null;
