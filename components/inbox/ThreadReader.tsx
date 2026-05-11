@@ -58,10 +58,10 @@ function fmtDate(raw: string): string {
 
 function HtmlEmailBody({ html }: { html: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [height, setHeight] = useState(600);
+  const [height, setHeight] = useState(200);
 
   const srcDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    html, body { margin: 0; padding: 0; overflow: hidden; }
+    html, body { margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a1a; word-wrap: break-word; }
     img { max-width: 100%; height: auto; display: block; }
     a { color: #2563eb; }
