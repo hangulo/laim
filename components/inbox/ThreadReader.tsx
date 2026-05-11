@@ -197,7 +197,7 @@ export function ThreadReader({ threadId, accountId }: { threadId: string; accoun
             <div key={i} className="h-32 animate-pulse rounded-xl bg-neutral-100 dark:bg-neutral-800" />
           ))}
         </div>
-        <div className="w-52 shrink-0 space-y-2">
+        <div className="w-52 xl:w-[420px] shrink-0 space-y-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-14 animate-pulse rounded-lg bg-neutral-100 dark:bg-neutral-800" />
           ))}
@@ -294,7 +294,7 @@ export function ThreadReader({ threadId, accountId }: { threadId: string; accoun
       </div>
 
       {/* Sidebar */}
-      <aside className="w-52 shrink-0 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm max-h-[calc(100vh-80px)] overflow-y-auto sticky top-4 dark:border-neutral-700 dark:bg-neutral-900">
+      <aside className="w-52 xl:w-[420px] shrink-0 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm max-h-[calc(100vh-80px)] overflow-y-auto sticky top-4 dark:border-neutral-700 dark:bg-neutral-900">
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
           From this sender
         </h2>
