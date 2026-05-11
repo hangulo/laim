@@ -11,7 +11,7 @@ export default function ThreadPage({
 }) {
   const accountId = searchParams.accountId ?? "";
   return (
-    <div className="mx-auto max-w-7xl px-6 py-4">
+    <div className="mx-auto max-w-7xl px-6 py-4 xl:max-w-none xl:px-10">
       <ThreadReader threadId={params.id} accountId={accountId} />
     </div>
   );
