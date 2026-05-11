@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useActions } from "@/components/shortcuts/ActionContext";
 import { useApp } from "@/lib/store";
 import { SenderHistory } from "./SenderHistory";
@@ -56,50 +56,23 @@ function fmtDate(raw: string): string {
     " · " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function sanitizeHtml(raw: string): string {
+  // Extract body content if full HTML document
+  const bodyMatch = raw.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  const content = bodyMatch ? bodyMatch[1] : raw;
+  // Strip scripts and on* event handlers
+  return content
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "")
+    .replace(/\son\w+='[^']*'/gi, "");
+}
+
 function HtmlEmailBody({ html }: { html: string }) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [height, setHeight] = useState(200);
-
-  const srcDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    html, body { margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a1a; word-wrap: break-word; }
-    img { max-width: 100%; height: auto; display: block; }
-    a { color: #2563eb; }
-    table { max-width: 100% !important; }
-    pre, code { white-space: pre-wrap; word-break: break-all; }
-  </style></head><body>${html}</body></html>`;
-
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-    let observer: ResizeObserver | null = null;
-
-    function onLoad() {
-      const doc = iframe!.contentDocument;
-      if (!doc) return;
-      function sync() {
-        const h = doc!.documentElement.scrollHeight;
-        if (h > 10) setHeight(h + 16);
-      }
-      sync();
-      observer = new ResizeObserver(sync);
-      observer.observe(doc.documentElement);
-    }
-
-    iframe.addEventListener("load", onLoad);
-    return () => {
-      iframe.removeEventListener("load", onLoad);
-      observer?.disconnect();
-    };
-  }, [html]);
-
+  const clean = sanitizeHtml(html);
   return (
-    <iframe
-      ref={iframeRef}
-      srcDoc={srcDoc}
-      sandbox="allow-popups allow-popups-to-escape-sandbox"
-      className="w-full border-0"
-      style={{ height }}
+    <div
+      className="email-body prose max-w-none text-sm leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: clean }}
     />
   );
 }

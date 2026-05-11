@@ -15,3 +15,10 @@ html, body {
 * {
   -webkit-font-smoothing: antialiased;
 }
+
+/* Scoped email body rendering */
+.email-body img { max-width: 100%; height: auto; }
+.email-body a { color: #2563eb; }
+.email-body table { max-width: 100% !important; border-collapse: collapse; }
+.email-body pre, .email-body code { white-space: pre-wrap; word-break: break-all; }
+.email-body p { margin: 0 0 0.75em; }
