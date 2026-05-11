@@ -176,15 +176,15 @@ function ContextMenu({ menu, accountId, onClose }: { menu: CtxMenu; accountId: s
     <div
       ref={ref}
       style={{ position: "fixed", top, left, zIndex: 9999 }}
-      className="min-w-[160px] overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+      className="min-w-[160px] overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
     >
       {items.map((item) => (
         <button
           key={item.label}
           onClick={item.action}
-          className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+          className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
         >
-          <span className="w-4 text-center text-xs text-neutral-400">{item.icon}</span>
+          <span className="w-4 text-center text-xs text-neutral-400 dark:text-neutral-500">{item.icon}</span>
           {item.label}
         </button>
       ))}
@@ -195,7 +195,7 @@ function ContextMenu({ menu, accountId, onClose }: { menu: CtxMenu; accountId: s
 function SpamBadge({ score, hasUnsubscribe }: { score: number | null; hasUnsubscribe: boolean }) {
   const chips: React.ReactNode[] = [];
   if (score !== null) {
-    const color = score >= 4 ? "bg-red-100 text-red-600" : score >= 2 ? "bg-amber-100 text-amber-600" : score >= 0 ? "bg-yellow-50 text-yellow-600" : "bg-neutral-100 text-neutral-400";
+    const color = score >= 4 ? "bg-red-100 text-red-600" : score >= 2 ? "bg-amber-100 text-amber-600" : score >= 0 ? "bg-yellow-50 text-yellow-600" : "bg-neutral-100 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500";
     chips.push(
       <span key="score" className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${color}`} title="Spam score">
         {score > 0 ? "+" : ""}{score.toFixed(1)}
@@ -204,7 +204,7 @@ function SpamBadge({ score, hasUnsubscribe }: { score: number | null; hasUnsubsc
   }
   if (hasUnsubscribe) {
     chips.push(
-      <span key="unsub" className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] text-neutral-400" title="Has unsubscribe link">
+      <span key="unsub" className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500" title="Has unsubscribe link">
         bulk
       </span>
     );
@@ -219,11 +219,11 @@ function Toggle({ active, onClick, label }: { active: boolean; onClick: () => vo
       onClick={onClick}
       className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
         active
-          ? "border-blue-300 bg-blue-50 text-blue-700"
-          : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+          ? "border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300"
+          : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
       }`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-blue-500" : "bg-neutral-300"}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-blue-500" : "bg-neutral-300 dark:bg-neutral-600"}`} />
       {label}
     </button>
   );
@@ -242,42 +242,42 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
   const hasUnread = group.unreadCount > 0;
 
   return (
-    <div className="border-b border-neutral-100 last:border-0">
+    <div className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
       {/* Group header */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
       >
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${color}`}>
           {ini}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className={`truncate text-sm font-semibold ${hasUnread ? "text-neutral-900" : "text-neutral-700"}`}>
+            <span className={`truncate text-sm font-semibold ${hasUnread ? "text-neutral-900 dark:text-white" : "text-neutral-700 dark:text-neutral-200"}`}>
               {group.senderName}
             </span>
             <div className="flex shrink-0 items-center gap-2">
               {hasUnread && (
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                   {group.unreadCount} unread
                 </span>
               )}
-              <span className="text-xs text-neutral-400">{fmtDate(group.mostRecentDate)}</span>
+              <span className="text-xs text-neutral-400 dark:text-neutral-500">{fmtDate(group.mostRecentDate)}</span>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[11px] text-neutral-400">
+            <span className="text-[11px] text-neutral-400 dark:text-neutral-500">
               {group.threads.length} {group.threads.length === 1 ? "thread" : "threads"} · {fmtRelative(group.mostRecentDate)}
             </span>
             {!open && (
-              <span className="min-w-0 flex-1 truncate text-[11px] text-neutral-500">
+              <span className="min-w-0 flex-1 truncate text-[11px] text-neutral-500 dark:text-neutral-400">
                 · {group.latestSubject || group.latestSnippet}
               </span>
             )}
           </div>
         </div>
         <svg
-          className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${open ? "rotate-90" : ""}`}
+          className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform dark:text-neutral-500 ${open ? "rotate-90" : ""}`}
           fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -286,7 +286,7 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
 
       {/* Expanded thread list */}
       {open && (
-        <div className="border-t border-neutral-100 bg-neutral-50/50">
+        <div className="border-t border-neutral-100 bg-neutral-50/50 dark:border-neutral-800 dark:bg-neutral-800/50">
           {group.threads.map((t, i) => {
             const idx = flatIndex + i;
             return (
@@ -295,21 +295,21 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
                 onClick={() => onOpen(t.id, idx)}
                 onMouseEnter={() => useApp.getState().setCursor(idx)}
                 className={`flex w-full items-center gap-3 px-4 py-2 pl-14 text-left text-sm transition-colors ${
-                  idx === cursor ? "bg-blue-50" : "hover:bg-white"
+                  idx === cursor ? "bg-blue-50 dark:bg-blue-900/30" : "hover:bg-white dark:hover:bg-neutral-800"
                 }`}
               >
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${t.unread ? "bg-blue-500" : "bg-neutral-300"}`} />
                 <span className="min-w-0 flex-1 truncate">
-                  <span className={t.unread ? "font-semibold text-neutral-900" : "text-neutral-700"}>
+                  <span className={t.unread ? "font-semibold text-neutral-900 dark:text-white" : "text-neutral-700 dark:text-neutral-200"}>
                     {t.subject || "(no subject)"}
                   </span>
-                  <span className="ml-2 text-neutral-400">{t.snippet}</span>
+                  <span className="ml-2 text-neutral-400 dark:text-neutral-500">{t.snippet}</span>
                 </span>
                 {t.starred && <span className="shrink-0 text-amber-400">★</span>}
                 {t.messageCount > 1 && (
-                  <span className="shrink-0 text-xs text-neutral-400">{t.messageCount}</span>
+                  <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">{t.messageCount}</span>
                 )}
-                <span className="w-14 shrink-0 text-right font-mono text-xs text-neutral-400">{fmtDate(t.date)}</span>
+                <span className="w-14 shrink-0 text-right font-mono text-xs text-neutral-400 dark:text-neutral-500">{fmtDate(t.date)}</span>
               </button>
             );
           })}
@@ -382,7 +382,7 @@ export function ThreadList() {
     router.push(`/thread/${threadId}?accountId=${accountId}`);
   }
 
-  if (!accountId) return <div className="p-6 text-sm text-neutral-500">No active account.</div>;
+  if (!accountId) return <div className="p-6 text-sm text-neutral-500 dark:text-neutral-400">No active account.</div>;
 
   const groups = grouped ? groupThreads(threads) : [];
   const unreadCount = threads.filter((t) => t.unread).length;
@@ -394,18 +394,18 @@ export function ThreadList() {
         onClick={() => setUnreadOnly((v) => !v)}
         className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
           unreadOnly
-            ? "border-blue-300 bg-blue-50 text-blue-700"
-            : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700"
+            ? "border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300"
+            : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
         }`}
       >
-        <span className={`h-1.5 w-1.5 rounded-full ${unreadOnly ? "bg-blue-500" : "bg-neutral-300"}`} />
+        <span className={`h-1.5 w-1.5 rounded-full ${unreadOnly ? "bg-blue-500" : "bg-neutral-300 dark:bg-neutral-600"}`} />
         Unread only
         <span className={`ml-0.5 tabular-nums ${
           unreadCount === 0
-            ? "text-neutral-300"
+            ? "text-neutral-300 dark:text-neutral-600"
             : unreadOnly
               ? "text-blue-500"
-              : "text-neutral-400"
+              : "text-neutral-400 dark:text-neutral-500"
         }`}>
           {unreadCount}
         </span>
@@ -414,16 +414,16 @@ export function ThreadList() {
   );
 
   return (
-    <div className="divide-y divide-neutral-100">
+    <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
       {/* Tab bar */}
       {isInbox ? (
-        <div className="flex items-center border-b border-neutral-200 bg-white">
+        <div className="flex items-center border-b border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
           {INBOX_TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => switchTab(tab.id)}
               className={`relative flex items-center gap-2 px-5 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id ? "text-blue-600" : "text-neutral-500 hover:text-neutral-800"
+                activeTab === tab.id ? "text-blue-600 dark:text-blue-400" : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
               }`}
             >
               {tab.label}
@@ -437,7 +437,7 @@ export function ThreadList() {
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-end gap-2 border-b border-neutral-200 bg-white px-4 py-2">
+        <div className="flex items-center justify-end gap-2 border-b border-neutral-200 bg-white px-4 py-2 dark:border-neutral-700 dark:bg-neutral-900">
           <Toggles />
         </div>
       )}
@@ -447,10 +447,10 @@ export function ThreadList() {
         <div className="space-y-px">
           {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-              <div className="h-2 w-2 rounded-full bg-neutral-100" />
-              <div className="h-3 w-36 animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 flex-1 animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 w-10 animate-pulse rounded bg-neutral-100" />
+              <div className="h-2 w-2 rounded-full bg-neutral-100 dark:bg-neutral-800" />
+              <div className="h-3 w-36 animate-pulse rounded bg-neutral-100 dark:bg-neutral-800" />
+              <div className="h-3 flex-1 animate-pulse rounded bg-neutral-100 dark:bg-neutral-800" />
+              <div className="h-3 w-10 animate-pulse rounded bg-neutral-100 dark:bg-neutral-800" />
             </div>
           ))}
         </div>
@@ -459,7 +459,7 @@ export function ThreadList() {
       {/* Grouped view */}
       {grouped && !loading && (
         groups.length === 0
-          ? <div className="p-10 text-center text-sm text-neutral-400">Nothing here.</div>
+          ? <div className="p-10 text-center text-sm text-neutral-400 dark:text-neutral-500">Nothing here.</div>
           : <div>
               {(() => {
                 let offset = 0;
@@ -493,27 +493,27 @@ export function ThreadList() {
           onMouseEnter={() => setCursor(i)}
           onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, thread: t }); }}
           className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
-            i === cursor ? "bg-blue-50" : "hover:bg-neutral-50"
+            i === cursor ? "bg-blue-50 dark:bg-blue-900/30" : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
           }`}
         >
           <span className={`h-2 w-2 shrink-0 rounded-full ${t.unread ? "bg-blue-500" : "bg-transparent"}`} />
-          <span className="w-44 shrink-0 truncate font-medium text-neutral-900">
+          <span className="w-44 shrink-0 truncate font-medium text-neutral-900 dark:text-white">
             {fmtParticipants(t.participants?.length ? t.participants : [t.from], t.messageCount ?? 1)}
           </span>
           <span className="min-w-0 flex-1 truncate">
-            <span className={t.unread ? "font-semibold text-neutral-900" : "text-neutral-700"}>
+            <span className={t.unread ? "font-semibold text-neutral-900 dark:text-white" : "text-neutral-700 dark:text-neutral-200"}>
               {t.subject || "(no subject)"}
             </span>
-            <span className="ml-2 text-neutral-400">{t.snippet}</span>
+            <span className="ml-2 text-neutral-400 dark:text-neutral-500">{t.snippet}</span>
           </span>
           <SpamBadge score={t.spamScore ?? null} hasUnsubscribe={t.hasUnsubscribe ?? false} />
           {t.starred && <span className="shrink-0 text-amber-400">★</span>}
-          <span className="w-16 shrink-0 text-right font-mono text-xs text-neutral-400">{fmtDate(t.date)}</span>
+          <span className="w-16 shrink-0 text-right font-mono text-xs text-neutral-400 dark:text-neutral-500">{fmtDate(t.date)}</span>
         </button>
       ))}
 
       {!grouped && threads.length === 0 && !loading && (
-        <div className="p-10 text-center text-sm text-neutral-400">
+        <div className="p-10 text-center text-sm text-neutral-400 dark:text-neutral-500">
           {unreadOnly ? "No unread messages here." : "Nothing here."}
         </div>
       )}

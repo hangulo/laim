@@ -55,9 +55,9 @@ export function SenderHistory({
       <div className="space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="space-y-1.5 rounded-lg p-2.5">
-            <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
-            <div className="h-3 w-full animate-pulse rounded bg-neutral-100" />
-            <div className="h-3 w-2/3 animate-pulse rounded bg-neutral-100" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100 dark:bg-neutral-800" />
+            <div className="h-3 w-full animate-pulse rounded bg-neutral-100 dark:bg-neutral-800" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-neutral-100 dark:bg-neutral-800" />
           </div>
         ))}
       </div>
@@ -65,26 +65,26 @@ export function SenderHistory({
   }
 
   if (threads.length === 0) {
-    return <p className="text-xs text-neutral-400">No other threads from this sender.</p>;
+    return <p className="text-xs text-neutral-400 dark:text-neutral-500">No other threads from this sender.</p>;
   }
 
   return (
-    <div className="divide-y divide-neutral-100">
+    <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
       {threads.map((t) => (
         <Link
           key={t.id}
           href={`/thread/${t.id}?accountId=${t.accountId}`}
-          className="block px-1 py-3 transition-colors hover:bg-neutral-50 first:pt-0"
+          className="block px-1 py-3 transition-colors hover:bg-neutral-50 first:pt-0 dark:hover:bg-neutral-800"
         >
           <div className="flex items-baseline justify-between gap-2 mb-1">
-            <span className={`text-xs font-medium leading-snug ${t.unread ? "text-neutral-900" : "text-neutral-600"}`}
+            <span className={`text-xs font-medium leading-snug ${t.unread ? "text-neutral-900 dark:text-white" : "text-neutral-600 dark:text-neutral-300"}`}
               style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
               {t.unread && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-blue-500 align-middle" />}
               {t.subject || "(no subject)"}
             </span>
-            <span className="shrink-0 text-[10px] text-neutral-400 mt-0.5">{fmtDate(t.date)}</span>
+            <span className="shrink-0 text-[10px] text-neutral-400 mt-0.5 dark:text-neutral-500">{fmtDate(t.date)}</span>
           </div>
-          <p className="text-[11px] leading-relaxed text-neutral-400"
+          <p className="text-[11px] leading-relaxed text-neutral-400 dark:text-neutral-500"
             style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {t.snippet}
           </p>
