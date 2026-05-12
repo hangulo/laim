@@ -4,6 +4,8 @@ out
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 *.log
 .DS_Store
 prisma/dev.db
