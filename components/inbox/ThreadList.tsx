@@ -242,6 +242,8 @@ function Toggle({ active, onClick, label }: { active: boolean; onClick: () => vo
   );
 }
 
+interface GroupCtxMenu { x: number; y: number; group: ThreadGroup }
+
 function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
   group: ThreadGroup;
   accountId: string;
@@ -250,15 +252,60 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
   onOpen: (threadId: string, idx: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [groupCtx, setGroupCtx] = useState<GroupCtxMenu | null>(null);
+  const [markingRead, setMarkingRead] = useState(false);
+  const ctxRef = React.useRef<HTMLDivElement>(null);
   const color = avatarColor(group.key);
   const ini = initials(group.senderName);
   const hasUnread = group.unreadCount > 0;
 
+  useEffect(() => {
+    if (!groupCtx) return;
+    function handler(e: MouseEvent | KeyboardEvent) {
+      if (e instanceof KeyboardEvent) { if (e.key === "Escape") setGroupCtx(null); return; }
+      if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setGroupCtx(null);
+    }
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", handler);
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", handler); };
+  }, [groupCtx]);
+
+  async function markAllRead() {
+    setMarkingRead(true);
+    await Promise.all(
+      group.threads.filter((t) => t.unread).map((t) =>
+        fetch(`/api/gmail/threads/${t.id}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ accountId, action: "markRead", read: true }),
+        })
+      )
+    );
+    window.dispatchEvent(new CustomEvent("laim:refresh-threads"));
+    setMarkingRead(false);
+    setGroupCtx(null);
+  }
+
+  async function archiveAll() {
+    await Promise.all(
+      group.threads.map((t) =>
+        fetch(`/api/gmail/threads/${t.id}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ accountId, action: "archive" }),
+        })
+      )
+    );
+    window.dispatchEvent(new CustomEvent("laim:refresh-threads"));
+    setGroupCtx(null);
+  }
+
   return (
-    <div className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
+    <div className="relative border-b border-neutral-100 last:border-0 dark:border-neutral-800">
       {/* Group header */}
       <button
         onClick={() => setOpen((o) => !o)}
+        onContextMenu={(e) => { e.preventDefault(); setGroupCtx({ x: e.clientX, y: e.clientY, group }); }}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800"
       >
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${color}`}>
@@ -293,7 +340,7 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
               </svg>
             )}
             {group.isBulk && (
-              <span className="shrink-0 rounded bg-neutral-100 px-1 py-px text-[10px] text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500">bulk</span>
+              <span className="shrink-0 rounded bg-neutral-200 px-1 py-px text-[10px] text-neutral-500 dark:bg-neutral-700 dark:text-neutral-400">bulk</span>
             )}
             {group.hasReplied && (
               <svg className="h-3 w-3 shrink-0 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -315,6 +362,35 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </button>
+
+      {/* Group right-click context menu */}
+      {groupCtx && (
+        <div
+          ref={ctxRef}
+          style={{ position: "fixed", top: Math.min(groupCtx.y, window.innerHeight - 100), left: Math.min(groupCtx.x, window.innerWidth - 200), zIndex: 9999 }}
+          className="min-w-[180px] overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          <button
+            onClick={markAllRead}
+            disabled={markingRead || !hasUnread}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
+            {markingRead ? "Marking…" : "Mark all as read"}
+            {hasUnread && <span className="ml-auto text-xs text-neutral-400">{group.unreadCount}</span>}
+          </button>
+          <button
+            onClick={archiveAll}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            <svg className="h-3.5 w-3.5 text-neutral-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2L19 8m-9 4v4m4-4v4" />
+            </svg>
+            Archive all
+            <span className="ml-auto text-xs text-neutral-400">{group.threads.length}</span>
+          </button>
+        </div>
+      )}
 
       {/* Expanded thread list */}
       {open && (
@@ -365,12 +441,26 @@ export function ThreadList() {
   const grouped = useApp((s) => s.inboxGrouped);
   const setGrouped = useApp((s) => s.setInboxGrouped);
   const [activeTab, setActiveTab] = useState<Tab>("primary");
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [unreadOnly, setUnreadOnly] = useState(true);
   const [hasAttachmentOnly, setHasAttachmentOnly] = useState(false);
   const [hideBulk, setHideBulk] = useState(false);
+  const [repliedOnly, setRepliedOnly] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersRef = React.useRef<HTMLDivElement>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
+
+  // Close filters dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) {
+        setFiltersOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const load = useCallback(async (label: string, tab: Tab, unread: boolean) => {
     if (!accountId) return;
@@ -421,10 +511,13 @@ export function ThreadList() {
 
   const filteredThreads = threads
     .filter((t) => !hasAttachmentOnly || t.hasAttachment)
-    .filter((t) => !hideBulk || !t.hasUnsubscribe);
+    .filter((t) => !hideBulk || !t.hasUnsubscribe)
+    .filter((t) => !repliedOnly || t.participants?.includes("me"));
   const groups = grouped ? groupThreads(filteredThreads) : [];
   const unreadCount = threads.filter((t) => t.unread).length;
   const attachmentCount = threads.filter((t) => t.hasAttachment).length;
+  const repliedCount = threads.filter((t) => t.participants?.includes("me")).length;
+  const extraActive = hasAttachmentOnly || hideBulk || repliedOnly;
 
   const Toggles = () => (
     <div className="flex items-center gap-2">
@@ -440,38 +533,83 @@ export function ThreadList() {
         <span className={`h-1.5 w-1.5 rounded-full ${unreadOnly ? "bg-blue-500" : "bg-neutral-300 dark:bg-neutral-600"}`} />
         Unread only
         <span className={`ml-0.5 tabular-nums ${
-          unreadCount === 0
-            ? "text-neutral-300 dark:text-neutral-600"
-            : unreadOnly
-              ? "text-blue-500"
-              : "text-neutral-400 dark:text-neutral-500"
+          unreadCount === 0 ? "text-neutral-300 dark:text-neutral-600"
+          : unreadOnly ? "text-blue-500"
+          : "text-neutral-400 dark:text-neutral-500"
         }`}>
           {unreadCount}
         </span>
       </button>
-      <button
-        onClick={() => setHasAttachmentOnly((v) => !v)}
-        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-          hasAttachmentOnly
-            ? "border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300"
-            : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
-        }`}
-      >
-        <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-        </svg>
-        Attachments
-        <span className={`ml-0.5 tabular-nums ${
-          attachmentCount === 0
-            ? "text-neutral-300 dark:text-neutral-600"
-            : hasAttachmentOnly
-              ? "text-blue-500"
-              : "text-neutral-400 dark:text-neutral-500"
-        }`}>
-          {attachmentCount}
-        </span>
-      </button>
-      <Toggle active={hideBulk} onClick={() => setHideBulk((v) => !v)} label="Hide bulk" />
+
+      {/* Extra filters dropdown */}
+      <div className="relative" ref={filtersRef}>
+        <button
+          onClick={() => setFiltersOpen((v) => !v)}
+          className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            extraActive
+              ? "border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300"
+              : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
+          }`}
+        >
+          {extraActive && <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />}
+          Filters
+          <svg className={`h-3 w-3 transition-transform ${filtersOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {filtersOpen && (
+          <div className="absolute right-0 top-full z-30 mt-1 min-w-[170px] overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
+            {/* Attachments */}
+            <button
+              onClick={() => setHasAttachmentOnly((v) => !v)}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 ${
+                hasAttachmentOnly ? "text-blue-700 dark:text-blue-300" : "text-neutral-600 dark:text-neutral-300"
+              }`}
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+              Has attachment
+              <span className={`ml-auto tabular-nums ${attachmentCount === 0 ? "text-neutral-300 dark:text-neutral-600" : "text-neutral-400 dark:text-neutral-500"}`}>
+                {attachmentCount}
+              </span>
+              {hasAttachmentOnly && <span className="ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
+            </button>
+
+            {/* Hide bulk */}
+            <button
+              onClick={() => setHideBulk((v) => !v)}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 ${
+                hideBulk ? "text-blue-700 dark:text-blue-300" : "text-neutral-600 dark:text-neutral-300"
+              }`}
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+              Hide bulk
+              {hideBulk && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
+            </button>
+
+            {/* Replied */}
+            <button
+              onClick={() => setRepliedOnly((v) => !v)}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 ${
+                repliedOnly ? "text-blue-700 dark:text-blue-300" : "text-neutral-600 dark:text-neutral-300"
+              }`}
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+              Replied
+              <span className={`ml-auto tabular-nums ${repliedCount === 0 ? "text-neutral-300 dark:text-neutral-600" : "text-neutral-400 dark:text-neutral-500"}`}>
+                {repliedCount}
+              </span>
+              {repliedOnly && <span className="ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 

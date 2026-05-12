@@ -61,7 +61,7 @@ export const useApp = create<AppState>()(
       composerOpen: false,
       composerInitial: null,
       voiceListening: false,
-      inboxGrouped: false,
+      inboxGrouped: true,
       setInboxGrouped: (v) => set({ inboxGrouped: v }),
       setAccounts: (accounts) =>
         set((s) => ({
