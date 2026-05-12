@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const label = req.nextUrl.searchParams.get("label");
     const aggregate = req.nextUrl.searchParams.get("aggregate") === "1";
     const max = Number(req.nextUrl.searchParams.get("max") ?? 25);
+    const pageToken = req.nextUrl.searchParams.get("pageToken") ?? undefined;
 
     if (aggregate) {
       const user = await requireUser();
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
       query,
       labelIds,
       maxResults: max,
+      pageToken,
       myEmail: account.email,
     });
     return NextResponse.json({

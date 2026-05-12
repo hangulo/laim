@@ -450,6 +450,8 @@ export function ThreadList() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersRef = React.useRef<HTMLDivElement>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
 
@@ -464,29 +466,50 @@ export function ThreadList() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const buildParams = useCallback((label: string, tab: Tab, unread: boolean, range: "90d" | "6m" | "1y" | "all") => {
+    const labelIds = label === "INBOX"
+      ? INBOX_TABS.find((t) => t.id === tab)!.labelIds
+      : [label];
+    const maxResults = range === "90d" ? 50 : range === "6m" ? 100 : 200;
+    const params = new URLSearchParams({ accountId: accountId!, max: String(maxResults), label: labelIds.join(",") });
+    const daysBack = range === "90d" ? 90 : range === "6m" ? 182 : range === "1y" ? 365 : 0;
+    const afterClause = daysBack > 0
+      ? `after:${new Date(Date.now() - daysBack * 86400_000).toISOString().slice(0, 10).replace(/-/g, "/")}`
+      : "";
+    const q = [label !== "SPAM" ? "-in:spam" : "", unread ? "is:unread" : "", afterClause].filter(Boolean).join(" ");
+    if (q) params.set("q", q);
+    return params;
+  }, [accountId]);
+
   const load = useCallback(async (label: string, tab: Tab, unread: boolean, range: "90d" | "6m" | "1y" | "all") => {
     if (!accountId) return;
     setLoading(true);
     try {
-      const labelIds = label === "INBOX"
-        ? INBOX_TABS.find((t) => t.id === tab)!.labelIds
-        : [label];
-      const maxResults = range === "90d" ? 50 : range === "6m" ? 100 : 200;
-      const params = new URLSearchParams({ accountId, max: String(maxResults), label: labelIds.join(",") });
-      const daysBack = range === "90d" ? 90 : range === "6m" ? 182 : range === "1y" ? 365 : 0;
-      const afterClause = daysBack > 0
-        ? `after:${new Date(Date.now() - daysBack * 86400_000).toISOString().slice(0, 10).replace(/-/g, "/")}`
-        : "";
-      const q = [label !== "SPAM" ? "-in:spam" : "", unread ? "is:unread" : "", afterClause].filter(Boolean).join(" ");
-      if (q) params.set("q", q);
+      const params = buildParams(label, tab, unread, range);
       const res = await fetch(`/api/gmail/threads?${params}`);
       const data = await res.json();
       setThreads(data.threads ?? []);
+      setNextPageToken(data.nextPageToken ?? null);
       setCursor(0);
     } finally {
       setLoading(false);
     }
-  }, [accountId, setCursor]);
+  }, [accountId, buildParams, setCursor]);
+
+  const loadMore = useCallback(async () => {
+    if (!accountId || !nextPageToken) return;
+    setLoadingMore(true);
+    try {
+      const params = buildParams(activeLabel, activeTab, unreadOnly, dateRange);
+      params.set("pageToken", nextPageToken);
+      const res = await fetch(`/api/gmail/threads?${params}`);
+      const data = await res.json();
+      setThreads((prev) => [...prev, ...(data.threads ?? [])]);
+      setNextPageToken(data.nextPageToken ?? null);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [accountId, nextPageToken, buildParams, activeLabel, activeTab, unreadOnly, dateRange]);
 
   useEffect(() => {
     void load(activeLabel, activeTab, unreadOnly, dateRange);
@@ -505,6 +528,7 @@ export function ThreadList() {
   function switchTab(tab: Tab) {
     setActiveTab(tab);
     setThreads([]);
+    setNextPageToken(null);
     setCursor(0);
   }
 
@@ -547,6 +571,7 @@ export function ThreadList() {
             }`}
           >
             {range === "90d" ? "90d" : range === "6m" ? "6mo" : range === "1y" ? "1yr" : "All"}
+            {dateRange === range && nextPageToken && <span className="ml-0.5 opacity-60">+</span>}
           </button>
         ))}
       </div>
@@ -682,6 +707,20 @@ export function ThreadList() {
       ) : (
         <div className="flex items-center justify-end gap-2 border-b border-neutral-200 bg-white px-4 py-2 dark:border-neutral-700 dark:bg-neutral-900">
           <Toggles />
+        </div>
+      )}
+
+      {/* More-results banner */}
+      {!loading && nextPageToken && (
+        <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-400">
+          <span>Showing {threads.length} threads — more exist beyond this limit.</span>
+          <button
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="ml-4 rounded px-2 py-0.5 font-medium underline-offset-2 hover:underline disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
         </div>
       )}
 
