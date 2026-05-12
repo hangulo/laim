@@ -70,10 +70,14 @@ function sanitizeHtml(raw: string): string {
 function HtmlEmailBody({ html }: { html: string }) {
   const clean = sanitizeHtml(html);
   return (
-    <div
-      className="email-body prose max-w-none text-sm leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: clean }}
-    />
+    // Force a light rendering context so email CSS (which assumes white background)
+    // doesn't conflict with the dark-mode app shell.
+    <div className="my-2 mb-3 overflow-hidden rounded-lg bg-white" style={{ colorScheme: "light" }}>
+      <div
+        className="email-body prose max-w-none text-sm leading-relaxed text-neutral-900"
+        dangerouslySetInnerHTML={{ __html: clean }}
+      />
+    </div>
   );
 }
 

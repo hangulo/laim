@@ -8,6 +8,7 @@ import { MouseHandler } from "@/components/shortcuts/MouseHandler";
 import { CommandPalette } from "@/components/shortcuts/CommandPalette";
 import { Composer } from "@/components/compose/Composer";
 import { AccountsLoader } from "@/components/account/AccountsLoader";
+import { VoiceHandler } from "@/components/shortcuts/VoiceHandler";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <MouseHandler />
           <CommandPalette />
           <Composer />
+          <VoiceHandler />
           {children}
         </ActionProvider>
       </SessionProvider>

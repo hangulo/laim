@@ -156,7 +156,7 @@ export function TriageDashboard() {
         <span className="flex-1 text-sm font-medium text-neutral-700 dark:text-neutral-200">
           {lastRun
             ? `Triaged ${stats?.triaged ?? 0} new · ${stats?.cached ?? 0} cached · last run ${lastRun.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-            : "Run triage to classify your inbox with Gemini"}
+            : "Run triage to classify your inbox with Claude"}
         </span>
         <button
           onClick={runTriage}
