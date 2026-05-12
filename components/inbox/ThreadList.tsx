@@ -445,6 +445,7 @@ export function ThreadList() {
   const [hasAttachmentOnly, setHasAttachmentOnly] = useState(false);
   const [hideBulk, setHideBulk] = useState(false);
   const [repliedOnly, setRepliedOnly] = useState(false);
+  const [hideHighSpam, setHideHighSpam] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersRef = React.useRef<HTMLDivElement>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -512,12 +513,13 @@ export function ThreadList() {
   const filteredThreads = threads
     .filter((t) => !hasAttachmentOnly || t.hasAttachment)
     .filter((t) => !hideBulk || !t.hasUnsubscribe)
-    .filter((t) => !repliedOnly || t.participants?.includes("me"));
+    .filter((t) => !repliedOnly || t.participants?.includes("me"))
+    .filter((t) => !hideHighSpam || (t.spamScore ?? 0) < 4);
   const groups = grouped ? groupThreads(filteredThreads) : [];
   const unreadCount = threads.filter((t) => t.unread).length;
   const attachmentCount = threads.filter((t) => t.hasAttachment).length;
   const repliedCount = threads.filter((t) => t.participants?.includes("me")).length;
-  const extraActive = hasAttachmentOnly || hideBulk || repliedOnly;
+  const extraActive = hasAttachmentOnly || hideBulk || repliedOnly || hideHighSpam;
 
   const Toggles = () => (
     <div className="flex items-center gap-2">
@@ -606,6 +608,20 @@ export function ThreadList() {
                 {repliedCount}
               </span>
               {repliedOnly && <span className="ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
+            </button>
+
+            {/* Hide high spam */}
+            <button
+              onClick={() => setHideHighSpam((v) => !v)}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 ${
+                hideHighSpam ? "text-blue-700 dark:text-blue-300" : "text-neutral-600 dark:text-neutral-300"
+              }`}
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              Hide high spam
+              {hideHighSpam && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
             </button>
           </div>
         )}
