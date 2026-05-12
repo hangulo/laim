@@ -253,17 +253,17 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className={`truncate text-sm font-semibold ${hasUnread ? "text-neutral-900 dark:text-white" : "text-neutral-700 dark:text-neutral-200"}`}>
-              {group.senderName}
-            </span>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className={`truncate text-sm font-semibold ${hasUnread ? "text-neutral-900 dark:text-white" : "text-neutral-700 dark:text-neutral-200"}`}>
+                {group.senderName}
+              </span>
               {hasUnread && (
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                  {group.unreadCount} unread
+                <span className="shrink-0 rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {group.unreadCount}
                 </span>
               )}
-              <span className="text-xs text-neutral-400 dark:text-neutral-500">{fmtDate(group.mostRecentDate)}</span>
             </div>
+            <span className="shrink-0 text-xs text-neutral-400 dark:text-neutral-500">{fmtDate(group.mostRecentDate)}</span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[11px] text-neutral-400 dark:text-neutral-500">
