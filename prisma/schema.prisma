@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id        String                @id @default(cuid())
-  email     String                @unique
-  name      String?
-  image     String?
-  createdAt DateTime              @default(now())
-  accounts  LinkedGoogleAccount[]
+  id            String                @id @default(cuid())
+  email         String                @unique
+  name          String?
+  image         String?
+  createdAt     DateTime              @default(now())
+  accounts      LinkedGoogleAccount[]
+  triageResults TriageResult[]
 }
 
 model LinkedGoogleAccount {
@@ -34,4 +35,24 @@ model LinkedGoogleAccount {
   updatedAt    DateTime @updatedAt
 
   @@unique([userId, email])
+}
+
+model TriageResult {
+  id           String   @id @default(cuid())
+  userId       String
+  accountId    String
+  threadId     String
+  historyId    String
+  category     String
+  summary      String
+  urgency      Int      @default(0)
+  subject      String   @default("")
+  fromHeader   String   @default("")
+  date         String   @default("")
+  accountEmail String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId, threadId])
 }

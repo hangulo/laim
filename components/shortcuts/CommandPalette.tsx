@@ -30,7 +30,7 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-32" onClick={close}>
       <div
-        className="w-[560px] overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl"
+        className="w-[560px] overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-2xl dark:border-neutral-700 dark:bg-neutral-900"
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -57,10 +57,10 @@ export function CommandPalette() {
               }
             }
           }}
-          className="w-full border-b border-neutral-200 px-4 py-3 text-sm outline-none"
+          className="w-full border-b border-neutral-200 bg-white px-4 py-3 text-sm outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder-neutral-500"
         />
         <div className="max-h-80 overflow-y-auto">
-          {filtered.length === 0 && <div className="p-4 text-sm text-neutral-500">No matches</div>}
+          {filtered.length === 0 && <div className="p-4 text-sm text-neutral-500 dark:text-neutral-400">No matches</div>}
           {filtered.map((a, i) => (
             <button
               key={a.id}
@@ -68,12 +68,12 @@ export function CommandPalette() {
                 close();
                 setTimeout(() => dispatch(a.id), 0);
               }}
-              className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm ${
-                i === idx ? "bg-neutral-100" : "hover:bg-neutral-50"
+              className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm dark:text-neutral-200 ${
+                i === idx ? "bg-neutral-100 dark:bg-neutral-800" : "hover:bg-neutral-50 dark:hover:bg-neutral-800"
               }`}
             >
               <span>{a.label}</span>
-              {a.hint && <span className="font-mono text-xs text-neutral-500">{a.hint}</span>}
+              {a.hint && <span className="font-mono text-xs text-neutral-500 dark:text-neutral-400">{a.hint}</span>}
             </button>
           ))}
         </div>

@@ -74,19 +74,19 @@ export function InboxNav() {
         href={navLink(id)}
         className={`flex items-center gap-2.5 rounded-full px-3 py-1.5 text-sm transition-colors ${
           active
-            ? id === "SPAM" ? "bg-red-100 font-semibold text-red-700" : "bg-blue-100 font-semibold text-blue-700"
-            : "text-neutral-700 hover:bg-neutral-100"
+            ? id === "SPAM" ? "bg-red-100 font-semibold text-red-700" : "bg-blue-100 font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+            : "text-neutral-700 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-700"
         }`}
       >
         <NavIcon type={icon} />
         <span className="flex-1 truncate">{label}</span>
-        {unread ? <span className={`text-xs font-medium ${active ? (id === "SPAM" ? "text-red-600" : "text-blue-600") : id === "SPAM" ? "text-red-400" : "text-neutral-500"}`}>{fmt(unread)}</span> : null}
+        {unread ? <span className={`text-xs font-medium ${active ? (id === "SPAM" ? "text-red-600" : "text-blue-600") : id === "SPAM" ? "text-red-400" : "text-neutral-500 dark:text-neutral-400"}`}>{fmt(unread)}</span> : null}
       </Link>
     );
   }
 
   return (
-    <nav className="flex w-56 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-neutral-200 bg-white px-2 py-3">
+    <nav className="flex w-56 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-neutral-200 bg-white px-2 py-3 dark:border-neutral-700 dark:bg-neutral-900">
       {SYSTEM_SECTIONS.map((s) => (
         <NavItem
           key={s.id}

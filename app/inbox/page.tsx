@@ -8,7 +8,7 @@ export default function InboxPage() {
     <div className="flex h-[calc(100vh-49px)]">
       <InboxNav />
       <div className="flex-1 overflow-y-auto">
-        <div className="rounded-xl border border-neutral-200 bg-white mx-4 my-4 overflow-hidden">
+        <div className="rounded-xl border border-neutral-200 bg-white mx-4 my-4 overflow-hidden dark:border-neutral-700 dark:bg-neutral-900">
           <ThreadList />
         </div>
       </div>
