@@ -17,6 +17,7 @@ interface Thread {
   messageCount: number;
   spamScore: number | null;
   hasUnsubscribe: boolean;
+  hasAttachment: boolean;
 }
 
 interface ThreadGroup {
@@ -27,6 +28,10 @@ interface ThreadGroup {
   mostRecentDate: string;
   latestSubject: string;
   latestSnippet: string;
+  totalMessageCount: number;
+  hasAttachment: boolean;
+  isBulk: boolean;
+  hasReplied: boolean;
 }
 
 type Tab = "primary" | "promotions" | "updates" | "social" | "forums";
@@ -101,11 +106,19 @@ function groupThreads(threads: Thread[]): ThreadGroup[] {
         mostRecentDate: t.date,
         latestSubject: t.subject,
         latestSnippet: t.snippet,
+        totalMessageCount: 0,
+        hasAttachment: false,
+        isBulk: false,
+        hasReplied: false,
       });
     }
     const g = map.get(email)!;
     g.threads.push(t);
     if (t.unread) g.unreadCount++;
+    g.totalMessageCount += t.messageCount ?? 1;
+    if (t.hasAttachment) g.hasAttachment = true;
+    if (t.hasUnsubscribe) g.isBulk = true;
+    if (t.participants?.includes("me")) g.hasReplied = true;
     if (new Date(t.date) > new Date(g.mostRecentDate)) {
       g.mostRecentDate = t.date;
       g.latestSubject = t.subject;
@@ -267,8 +280,27 @@ function GroupRow({ group, accountId, cursor, flatIndex, onOpen }: {
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[11px] text-neutral-400 dark:text-neutral-500">
-              {group.threads.length} {group.threads.length === 1 ? "thread" : "threads"} · {fmtRelative(group.mostRecentDate)}
+              {group.threads.length} {group.threads.length === 1 ? "thread" : "threads"}
+              {group.totalMessageCount > group.threads.length && (
+                <> · {group.totalMessageCount} messages</>
+              )}
+              {" · "}{fmtRelative(group.mostRecentDate)}
             </span>
+            {group.hasAttachment && (
+              <svg className="h-3 w-3 shrink-0 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <title>Has attachments</title>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            )}
+            {group.isBulk && (
+              <span className="shrink-0 rounded bg-neutral-100 px-1 py-px text-[10px] text-neutral-400 dark:bg-neutral-800 dark:text-neutral-500">bulk</span>
+            )}
+            {group.hasReplied && (
+              <svg className="h-3 w-3 shrink-0 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <title>You&apos;ve replied</title>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+            )}
             {!open && (
               <span className="min-w-0 flex-1 truncate text-[11px] text-neutral-500 dark:text-neutral-400">
                 · {group.latestSubject || group.latestSnippet}
@@ -333,6 +365,8 @@ export function ThreadList() {
   const [activeTab, setActiveTab] = useState<Tab>("primary");
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [grouped, setGrouped] = useState(false);
+  const [hasAttachmentOnly, setHasAttachmentOnly] = useState(false);
+  const [hideBulk, setHideBulk] = useState(false);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
@@ -384,8 +418,12 @@ export function ThreadList() {
 
   if (!accountId) return <div className="p-6 text-sm text-neutral-500 dark:text-neutral-400">No active account.</div>;
 
-  const groups = grouped ? groupThreads(threads) : [];
+  const filteredThreads = threads
+    .filter((t) => !hasAttachmentOnly || t.hasAttachment)
+    .filter((t) => !hideBulk || !t.hasUnsubscribe);
+  const groups = grouped ? groupThreads(filteredThreads) : [];
   const unreadCount = threads.filter((t) => t.unread).length;
+  const attachmentCount = threads.filter((t) => t.hasAttachment).length;
 
   const Toggles = () => (
     <div className="flex items-center gap-2">
@@ -410,6 +448,29 @@ export function ThreadList() {
           {unreadCount}
         </span>
       </button>
+      <button
+        onClick={() => setHasAttachmentOnly((v) => !v)}
+        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+          hasAttachmentOnly
+            ? "border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300"
+            : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 dark:border-neutral-700 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
+        }`}
+      >
+        <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+        Attachments
+        <span className={`ml-0.5 tabular-nums ${
+          attachmentCount === 0
+            ? "text-neutral-300 dark:text-neutral-600"
+            : hasAttachmentOnly
+              ? "text-blue-500"
+              : "text-neutral-400 dark:text-neutral-500"
+        }`}>
+          {attachmentCount}
+        </span>
+      </button>
+      <Toggle active={hideBulk} onClick={() => setHideBulk((v) => !v)} label="Hide bulk" />
     </div>
   );
 
@@ -486,7 +547,7 @@ export function ThreadList() {
         <ContextMenu menu={ctxMenu} accountId={accountId} onClose={() => setCtxMenu(null)} />
       )}
 
-      {!grouped && threads.map((t, i) => (
+      {!grouped && filteredThreads.map((t, i) => (
         <button
           key={t.id}
           onClick={() => openThread(t.id, i)}
@@ -512,7 +573,7 @@ export function ThreadList() {
         </button>
       ))}
 
-      {!grouped && threads.length === 0 && !loading && (
+      {!grouped && filteredThreads.length === 0 && !loading && (
         <div className="p-10 text-center text-sm text-neutral-400 dark:text-neutral-500">
           {unreadOnly ? "No unread messages here." : "Nothing here."}
         </div>
