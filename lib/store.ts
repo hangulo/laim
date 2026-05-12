@@ -25,6 +25,8 @@ interface AppState {
   composerOpen: boolean;
   composerInitial: ComposerInitial | null;
   voiceListening: boolean;
+  inboxGrouped: boolean;
+  setInboxGrouped: (v: boolean) => void;
   setAccounts: (accounts: AccountInfo[]) => void;
   setActiveAccount: (id: string) => void;
   cycleAccount: (dir: 1 | -1) => void;
@@ -59,6 +61,8 @@ export const useApp = create<AppState>()(
       composerOpen: false,
       composerInitial: null,
       voiceListening: false,
+      inboxGrouped: false,
+      setInboxGrouped: (v) => set({ inboxGrouped: v }),
       setAccounts: (accounts) =>
         set((s) => ({
           accounts,
@@ -87,7 +91,7 @@ export const useApp = create<AppState>()(
     }),
     {
       name: "laim-app",
-      partialize: (s) => ({ activeAccountId: s.activeAccountId }),
+      partialize: (s) => ({ activeAccountId: s.activeAccountId, inboxGrouped: s.inboxGrouped }),
     },
   ),
 );

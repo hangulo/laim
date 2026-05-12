@@ -362,9 +362,10 @@ export function ThreadList() {
   const activeLabel = searchParams.get("label") ?? "INBOX";
   const isInbox = activeLabel === "INBOX";
 
+  const grouped = useApp((s) => s.inboxGrouped);
+  const setGrouped = useApp((s) => s.setInboxGrouped);
   const [activeTab, setActiveTab] = useState<Tab>("primary");
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const [grouped, setGrouped] = useState(false);
   const [hasAttachmentOnly, setHasAttachmentOnly] = useState(false);
   const [hideBulk, setHideBulk] = useState(false);
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -427,7 +428,7 @@ export function ThreadList() {
 
   const Toggles = () => (
     <div className="flex items-center gap-2">
-      <Toggle active={grouped} onClick={() => setGrouped((v) => !v)} label="Grouped" />
+      <Toggle active={grouped} onClick={() => setGrouped(!grouped)} label="Grouped" />
       <button
         onClick={() => setUnreadOnly((v) => !v)}
         className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
