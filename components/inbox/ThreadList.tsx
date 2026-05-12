@@ -442,6 +442,7 @@ export function ThreadList() {
   const setGrouped = useApp((s) => s.setInboxGrouped);
   const [activeTab, setActiveTab] = useState<Tab>("primary");
   const [unreadOnly, setUnreadOnly] = useState(true);
+  const [dateRange, setDateRange] = useState<"90d" | "6m" | "1y" | "all">("90d");
   const [hasAttachmentOnly, setHasAttachmentOnly] = useState(false);
   const [hideBulk, setHideBulk] = useState(false);
   const [repliedOnly, setRepliedOnly] = useState(false);
@@ -463,7 +464,7 @@ export function ThreadList() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const load = useCallback(async (label: string, tab: Tab, unread: boolean) => {
+  const load = useCallback(async (label: string, tab: Tab, unread: boolean, range: "90d" | "6m" | "1y" | "all") => {
     if (!accountId) return;
     setLoading(true);
     try {
@@ -471,8 +472,11 @@ export function ThreadList() {
         ? INBOX_TABS.find((t) => t.id === tab)!.labelIds
         : [label];
       const params = new URLSearchParams({ accountId, max: "50", label: labelIds.join(",") });
-      // Always exclude spam from category views; combine with unread filter if needed
-      const q = [label !== "SPAM" ? "-in:spam" : "", unread ? "is:unread" : ""].filter(Boolean).join(" ");
+      const daysBack = range === "90d" ? 90 : range === "6m" ? 182 : range === "1y" ? 365 : 0;
+      const afterClause = daysBack > 0
+        ? `after:${new Date(Date.now() - daysBack * 86400_000).toISOString().slice(0, 10).replace(/-/g, "/")}`
+        : "";
+      const q = [label !== "SPAM" ? "-in:spam" : "", unread ? "is:unread" : "", afterClause].filter(Boolean).join(" ");
       if (q) params.set("q", q);
       const res = await fetch(`/api/gmail/threads?${params}`);
       const data = await res.json();
@@ -484,11 +488,11 @@ export function ThreadList() {
   }, [accountId, setCursor]);
 
   useEffect(() => {
-    void load(activeLabel, activeTab, unreadOnly);
-    const handler = () => void load(activeLabel, activeTab, unreadOnly);
+    void load(activeLabel, activeTab, unreadOnly, dateRange);
+    const handler = () => void load(activeLabel, activeTab, unreadOnly, dateRange);
     window.addEventListener("laim:refresh-threads", handler);
     return () => window.removeEventListener("laim:refresh-threads", handler);
-  }, [load, activeLabel, activeTab, unreadOnly]);
+  }, [load, activeLabel, activeTab, unreadOnly, dateRange]);
 
   useEffect(() => {
     if (!accountId) return;
@@ -524,6 +528,24 @@ export function ThreadList() {
   const Toggles = () => (
     <div className="flex items-center gap-2">
       <Toggle active={grouped} onClick={() => setGrouped(!grouped)} label="Grouped" />
+
+      {/* Date range segmented control */}
+      <div className="flex overflow-hidden rounded-full border border-neutral-200 text-xs font-medium dark:border-neutral-700">
+        {(["90d", "6m", "1y", "all"] as const).map((range) => (
+          <button
+            key={range}
+            onClick={() => setDateRange(range)}
+            className={`px-3 py-1 transition-colors ${
+              dateRange === range
+                ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                : "text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+            }`}
+          >
+            {range === "90d" ? "90d" : range === "6m" ? "6mo" : range === "1y" ? "1yr" : "All"}
+          </button>
+        ))}
+      </div>
+
       <button
         onClick={() => setUnreadOnly((v) => !v)}
         className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
