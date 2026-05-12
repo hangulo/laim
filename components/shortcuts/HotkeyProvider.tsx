@@ -63,9 +63,11 @@ export function HotkeyProvider() {
   useHotkeys("[", () => !blocked && dispatch("prevAccount"), opts, [blocked, dispatch]);
   useHotkeys("]", () => !blocked && dispatch("nextAccount"), opts, [blocked, dispatch]);
   useHotkeys("mod+k", () => dispatch("palette"), { ...opts, enableOnFormTags: true, enableOnContentEditable: true }, [dispatch]);
+  useHotkeys("v", () => !blocked && useApp.getState().toggleVoice(), opts, [blocked]);
   useHotkeys("escape", () => {
     if (useApp.getState().paletteOpen) useApp.getState().closePalette();
     else if (useApp.getState().composerOpen) useApp.getState().closeComposer();
+    else if (useApp.getState().voiceListening) useApp.getState().toggleVoice();
   }, { enableOnFormTags: true, enableOnContentEditable: true });
 
   useSequence("g", "i", () => !blocked && dispatch("goInbox"), blocked);
