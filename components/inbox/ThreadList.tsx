@@ -471,7 +471,8 @@ export function ThreadList() {
       const labelIds = label === "INBOX"
         ? INBOX_TABS.find((t) => t.id === tab)!.labelIds
         : [label];
-      const params = new URLSearchParams({ accountId, max: "50", label: labelIds.join(",") });
+      const maxResults = range === "90d" ? 50 : range === "6m" ? 100 : 200;
+      const params = new URLSearchParams({ accountId, max: String(maxResults), label: labelIds.join(",") });
       const daysBack = range === "90d" ? 90 : range === "6m" ? 182 : range === "1y" ? 365 : 0;
       const afterClause = daysBack > 0
         ? `after:${new Date(Date.now() - daysBack * 86400_000).toISOString().slice(0, 10).replace(/-/g, "/")}`
@@ -534,7 +535,11 @@ export function ThreadList() {
         {(["90d", "6m", "1y", "all"] as const).map((range) => (
           <button
             key={range}
-            onClick={() => setDateRange(range)}
+            onClick={() => {
+              setDateRange(range);
+              // Wider ranges are useless with unread-only — older emails are already read
+              if (range !== "90d") setUnreadOnly(false);
+            }}
             className={`px-3 py-1 transition-colors ${
               dateRange === range
                 ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"

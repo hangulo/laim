@@ -80,3 +80,20 @@ npm run dev
 ## Stack
 
 Next.js 14 (App Router) · TypeScript · Tailwind CSS · NextAuth · Prisma + SQLite · googleapis · Anthropic SDK · Zustand · react-hotkeys-hook · Web Speech API
+
+## Changelog
+
+| Version | What changed |
+|---|---|
+| v0.21 | Date range fix: increase maxResults with wider ranges (50→100→200) so older threads actually appear |
+| v0.20 | Date range fix: auto-disable unread-only when switching to 6mo / 1yr / All |
+| v0.19 | Date range segmented filter — 90d / 6mo / 1yr / All, defaults to last 90 days |
+| v0.18 | Hide high spam score filter (≥ 4), on by default |
+| v0.17 | Filters dropdown (has attachment, hide bulk, replied only, hide high spam); group right-click menu (mark all read, archive all); bulk badge dark mode fix; default grouped + unread-only ON |
+| v0.16 | Grouped toggle persisted in Zustand + localStorage across navigation |
+| v0.15 | Group metadata: attachment icon, message count badge, bulk badge, replied indicator; filter toggles for attachments and bulk |
+| v0.14 | Unread count badge moved inline next to sender name in grouped mode |
+| v0.13 | Voice commands via Web Speech API — press `v`, 11 recognized phrases, pulsing red pill UI |
+| v0.12 | Dark mode HTML email fix — always-white container with `colorScheme: light` isolation |
+| v0.11 | Claude AI triage — Anthropic SDK, prompt caching, batch processing, urgency + category + summary |
+| v0.10 | Initial release: grouped inbox, multi-account, keyboard shortcuts, command palette |
