@@ -85,6 +85,8 @@ Next.js 14 (App Router) · TypeScript · Tailwind CSS · NextAuth · Prisma + SQ
 
 | Version | What changed |
 |---|---|
+| v0.23 | Email open tracking: "Track opens" toggle in composer; pixel injected into outgoing email; open count + timestamps shown in thread view (requires public hosting for pixel to fire) |
+| v0.22 | Load-more banner and pagination when results are capped at the fetch limit |
 | v0.21 | Date range fix: increase maxResults with wider ranges (50→100→200) so older threads actually appear |
 | v0.20 | Date range fix: auto-disable unread-only when switching to 6mo / 1yr / All |
 | v0.19 | Date range segmented filter — 90d / 6mo / 1yr / All, defaults to last 90 days |

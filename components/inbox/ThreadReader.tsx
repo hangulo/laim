@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useActions } from "@/components/shortcuts/ActionContext";
 import { useApp } from "@/lib/store";
 import { SenderHistory } from "./SenderHistory";
@@ -22,6 +22,69 @@ interface ThreadFull {
   id: string;
   subject: string;
   messages: Message[];
+  labelIds: string[];
+}
+
+interface TrackerData {
+  id: string;
+  opens: { id: string; openedAt: string; userAgent: string | null }[];
+}
+
+function TrackerStatus({ threadId, accountId }: { threadId: string; accountId: string }) {
+  const [tracker, setTracker] = useState<TrackerData | null | "loading">("loading");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function fetchTracker() {
+    fetch(`/api/track?threadId=${threadId}&accountId=${accountId}`)
+      .then((r) => r.json())
+      .then((d) => setTracker(d ?? null))
+      .catch(() => setTracker(null));
+  }
+
+  useEffect(() => {
+    fetchTracker();
+    intervalRef.current = setInterval(fetchTracker, 30_000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threadId, accountId]);
+
+  if (tracker === "loading" || tracker === null) return null;
+
+  const opens = tracker.opens;
+  const count = opens.length;
+
+  return (
+    <div className="mt-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="flex items-center gap-2">
+        <svg className={`h-3.5 w-3.5 shrink-0 ${count > 0 ? "text-blue-500" : "text-neutral-400"}`} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        <span className={`text-sm font-medium ${count > 0 ? "text-neutral-900 dark:text-white" : "text-neutral-400 dark:text-neutral-500"}`}>
+          {count === 0
+            ? "Not opened yet"
+            : count === 1
+            ? "Opened once"
+            : `Opened ${count} times`}
+        </span>
+        {count > 0 && (
+          <span className="text-xs text-neutral-400 dark:text-neutral-500">
+            — last {fmtDate(opens[0].openedAt)}
+          </span>
+        )}
+      </div>
+      {count > 1 && (
+        <ul className="mt-2 space-y-1 border-t border-neutral-100 pt-2 dark:border-neutral-800">
+          {opens.map((o) => (
+            <li key={o.id} className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+              <span className="h-1 w-1 rounded-full bg-neutral-300 dark:bg-neutral-600 shrink-0" />
+              {fmtDate(o.openedAt)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function parseSender(raw: string): { name: string; email: string } {
@@ -248,6 +311,8 @@ export function ThreadReader({ threadId, accountId }: { threadId: string; accoun
             />
           ))}
         </div>
+
+        <TrackerStatus threadId={threadId} accountId={accountId} />
 
         <div className="mt-4 flex items-center gap-2 flex-wrap">
           <button

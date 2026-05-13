@@ -56,3 +56,24 @@ model TriageResult {
 
   @@unique([userId, accountId, threadId])
 }
+
+model EmailTracker {
+  id        String      @id @default(cuid())
+  accountId String
+  threadId  String?
+  toAddress String
+  subject   String
+  createdAt DateTime    @default(now())
+  opens     EmailOpen[]
+
+  @@index([accountId, threadId])
+}
+
+model EmailOpen {
+  id        String       @id @default(cuid())
+  trackerId String
+  tracker   EmailTracker @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  openedAt  DateTime     @default(now())
+  userAgent String?
+  ip        String?
+}

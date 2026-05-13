@@ -228,36 +228,70 @@ export interface SendOpts {
   bcc?: string;
   subject: string;
   bodyText: string;
+  bodyHtml?: string;
   threadId?: string;
   inReplyTo?: string;
   references?: string;
 }
 
-export async function sendMessage(accountId: string, fromEmail: string, opts: SendOpts): Promise<void> {
+export async function sendMessage(
+  accountId: string,
+  fromEmail: string,
+  opts: SendOpts,
+): Promise<{ threadId: string }> {
   const gmail = await gmailFor(accountId);
-  const lines = [
+
+  const headers = [
     `From: ${fromEmail}`,
     `To: ${opts.to}`,
+    ...(opts.cc ? [`Cc: ${opts.cc}`] : []),
+    ...(opts.bcc ? [`Bcc: ${opts.bcc}`] : []),
+    `Subject: ${opts.subject}`,
+    ...(opts.inReplyTo ? [`In-Reply-To: ${opts.inReplyTo}`] : []),
+    ...(opts.references ? [`References: ${opts.references}`] : []),
   ];
-  if (opts.cc) lines.push(`Cc: ${opts.cc}`);
-  if (opts.bcc) lines.push(`Bcc: ${opts.bcc}`);
-  lines.push(`Subject: ${opts.subject}`);
-  if (opts.inReplyTo) lines.push(`In-Reply-To: ${opts.inReplyTo}`);
-  if (opts.references) lines.push(`References: ${opts.references}`);
-  lines.push(`Content-Type: text/plain; charset="UTF-8"`);
-  lines.push("");
-  lines.push(opts.bodyText);
 
-  const raw = Buffer.from(lines.join("\r\n"), "utf8")
+  let body: string;
+  if (opts.bodyHtml) {
+    const boundary = `=_laim_${Date.now()}`;
+    body = [
+      ...headers,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      `Content-Type: text/plain; charset="UTF-8"`,
+      "",
+      opts.bodyText,
+      "",
+      `--${boundary}`,
+      `Content-Type: text/html; charset="UTF-8"`,
+      "",
+      opts.bodyHtml,
+      "",
+      `--${boundary}--`,
+    ].join("\r\n");
+  } else {
+    body = [
+      ...headers,
+      `Content-Type: text/plain; charset="UTF-8"`,
+      "",
+      opts.bodyText,
+    ].join("\r\n");
+  }
+
+  const raw = Buffer.from(body, "utf8")
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
 
-  await gmail.users.messages.send({
+  const result = await gmail.users.messages.send({
     userId: "me",
     requestBody: { raw, threadId: opts.threadId },
   });
+
+  return { threadId: result.data.threadId ?? opts.threadId ?? "" };
 }
 
 export async function getMessageHeaders(accountId: string, messageId: string): Promise<Record<string, string>> {
